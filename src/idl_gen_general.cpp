@@ -1053,22 +1053,31 @@ static void GenStruct(const LanguageParameters &lang, const Parser &parser,
           code += MakeCamel(field.name);
           code += "Vector(FlatBufferBuilder builder, ";
           code += GenTypeBasic(lang, parser, vector_type) + "[] data) ";
-          code += "{ builder." + FunctionStart(lang, 'S') + "tartVector(";
-          code += NumToString(elem_size);
-          code += ", data." + FunctionStart(lang, 'L') + "ength, ";
-          code += NumToString(alignment);
-          code += "); for (int i = data.";
-          code += FunctionStart(lang, 'L') + "ength - 1; i >= 0; i--) builder.";
-          code += FunctionStart(lang, 'A') + "dd";
-          code += GenMethod(lang, parser, vector_type);
-          code += "(";
-          code += SourceCastBasic(lang, parser, vector_type, false);
-          code += "data[i]";
-          if (lang.language == IDLOptions::kCSharp &&
-            (vector_type.base_type == BASE_TYPE_STRUCT || vector_type.base_type == BASE_TYPE_STRING))
-            code += ".Value";
-          code += "); return ";
-          code += "builder." + FunctionStart(lang, 'E') + "ndVector(); }\n";
+          code += "{ ";
+          if (lang.language == IDLOptions::kCSharp && IsScalar(vector_type.base_type) && !IsEnum(vector_type)) {
+            code += "return builder.Create";
+            code += GenMethod(lang, parser, vector_type);
+            code += "Vector(data, 0, data.Length);";
+          } else {
+            // Generate a method to create a vector from a Java array.
+            code += "builder." + FunctionStart(lang, 'S') + "tartVector(";
+            code += NumToString(elem_size);
+            code += ", data." + FunctionStart(lang, 'L') + "ength, ";
+            code += NumToString(alignment);
+            code += "); for (int i = data.";
+            code += FunctionStart(lang, 'L') + "ength - 1; i >= 0; i--) builder.";
+            code += FunctionStart(lang, 'A') + "dd";
+            code += GenMethod(lang, parser, vector_type);
+            code += "(";
+            code += SourceCastBasic(lang, parser, vector_type, false);
+            code += "data[i]";
+            if (lang.language == IDLOptions::kCSharp &&
+                (vector_type.base_type == BASE_TYPE_STRUCT || vector_type.base_type == BASE_TYPE_STRING))
+                code += ".Value";
+            code += "); return ";
+            code += "builder." + FunctionStart(lang, 'E') + "ndVector();";
+          }
+          code += " }\n";
         }
         // Generate a method to start a vector, data to be added manually after.
         code += "  public static void " + FunctionStart(lang, 'S') + "tart";
