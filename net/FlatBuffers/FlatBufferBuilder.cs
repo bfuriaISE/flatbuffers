@@ -479,7 +479,7 @@ namespace FlatBuffers
             }
         }
 
-        public int EndObject()
+        public int EndObject(bool enableVtableReuse = true)
         {
             if (_vtableSize < 0)
                 throw new InvalidOperationException(
@@ -506,24 +506,26 @@ namespace FlatBuffers
 
             // Search for an existing vtable that matches the current one.
             int existingVtable = 0;
-            for (int i = 0; i < _numVtables; i++) {
-                int vt1 = _bb.Length - _vtables[i];
-                int vt2 = _space;
-                short len = _bb.GetShort(vt1);
-                if (len == _bb.GetShort(vt2)) {
-                    for (int j = sizeof(short); j < len; j += sizeof(short)) {
-                        if (_bb.GetShort(vt1 + j) != _bb.GetShort(vt2 + j)) {
-                            goto endLoop;
+            if (enableVtableReuse) {
+                for (int i = 0; i < _numVtables; i++) {
+                    int vt1 = _bb.Length - _vtables[i];
+                    int vt2 = _space;
+                    short len = _bb.GetShort(vt1);
+                    if (len == _bb.GetShort(vt2)) {
+                        for (int j = sizeof(short); j < len; j += sizeof(short)) {
+                            if (_bb.GetShort(vt1 + j) != _bb.GetShort(vt2 + j)) {
+                                goto endLoop;
+                            }
                         }
+                        existingVtable = _vtables[i];
+                        break;
                     }
-                    existingVtable = _vtables[i];
-                    break;
-                }
 
-            endLoop: { }
+                endLoop: {}
+                }
             }
 
-            if (existingVtable != 0) {
+          if (existingVtable != 0) {
                 // Found a match:
                 // Remove the current vtable.
                 _space = _bb.Length - vtableloc;
@@ -533,15 +535,16 @@ namespace FlatBuffers
                 // No match:
                 // Add the location of the current vtable to the list of
                 // vtables.
-                if (_numVtables == _vtables.Length)
-                {
-                    // Arrays.CopyOf(vtables num_vtables * 2);
-                    var newvtables = new int[ _numVtables * 2];
-                    Array.Copy(_vtables, newvtables, _vtables.Length);
+                if (enableVtableReuse) {
+                    if (_numVtables == _vtables.Length) {
+                        // Arrays.CopyOf(vtables num_vtables * 2);
+                        var newvtables = new int[_numVtables*2];
+                        Array.Copy(_vtables, newvtables, _vtables.Length);
+                        _vtables = newvtables;
+                    }
 
-                    _vtables = newvtables;
-                };
-                _vtables[_numVtables++] = Offset;
+                    _vtables[_numVtables++] = Offset;
+                }
                 // Point table to current vtable.
                 _bb.PutInt(_bb.Length - vtableloc, Offset - vtableloc);
             }

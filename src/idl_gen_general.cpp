@@ -884,27 +884,27 @@ static void GenStruct(const LanguageParameters &lang, const Parser &parser,
           break;
       }
     }
-	// generate object accessors if is nested_flatbuffer
-	auto nested = field.attributes.Lookup("nested_flatbuffer");
-	if (nested) {
-		auto nested_qualified_name =
-			parser.namespaces_.back()->GetFullyQualifiedName(nested->constant);
-		auto nested_type = parser.structs_.Lookup(nested_qualified_name);
-		auto nested_type_name = WrapInNameSpace(parser, *nested_type);
-		auto nestedMethodName = MakeCamel(field.name, lang.first_camel_upper) 
-			+ "As" + nested_type_name;
-		auto getNestedMethodName = nestedMethodName;
-		if (lang.language == IDLOptions::kCSharp) {
-			getNestedMethodName = "Get" + nestedMethodName;
-		}
-		code += "  public " + nested_type_name + " ";
-		code += nestedMethodName + "() { return ";
-		code += getNestedMethodName + "(new " + nested_type_name + "()); }\n";
-		code += "  public " + nested_type_name + " " + getNestedMethodName;
-		code += "(" + nested_type_name + " obj) { ";
-		code += "int o = __offset(" + NumToString(field.value.offset) +"); ";
-		code += "return o != 0 ? obj.__init(__indirect(__vector(o)), bb) : null; }\n";
-	}
+    // generate object accessors if is nested_flatbuffer
+    auto nested = field.attributes.Lookup("nested_flatbuffer");
+    if (nested) {
+      auto nested_qualified_name =
+        parser.namespaces_.back()->GetFullyQualifiedName(nested->constant);
+      auto nested_type = parser.structs_.Lookup(nested_qualified_name);
+      auto nested_type_name = WrapInNameSpace(parser, *nested_type);
+      auto nestedMethodName = MakeCamel(field.name, lang.first_camel_upper)
+        + "As" + nested_type_name;
+      auto getNestedMethodName = nestedMethodName;
+      if (lang.language == IDLOptions::kCSharp) {
+        getNestedMethodName = "Get" + nestedMethodName;
+      }
+      code += "  public " + nested_type_name + " ";
+      code += nestedMethodName + "() { return ";
+      code += getNestedMethodName + "(new " + nested_type_name + "()); }\n";
+      code += "  public " + nested_type_name + " " + getNestedMethodName;
+      code += "(" + nested_type_name + " obj) { ";
+      code += "int o = __offset(" + NumToString(field.value.offset) + "); ";
+      code += "return o != 0 ? obj.__init(__indirect(__vector(o)), bb) : null; }\n";
+    }
     // generate mutators for scalar fields or vectors of scalars
     if (parser.opts.mutable_buffer) {
       auto underlying_type = field.value.type.base_type == BASE_TYPE_VECTOR
@@ -989,6 +989,10 @@ static void GenStruct(const LanguageParameters &lang, const Parser &parser,
           code += GenDefaultValueBasic(lang, parser, field.value);
         }
       }
+      // add parameter to enable/disable vtable reuse
+      if (lang.language == IDLOptions::kCSharp) {
+        code += ",\n      bool enableVtableReuse = true";
+      }
       code += ") {\n    builder.";
       code += FunctionStart(lang, 'S') + "tartObject(";
       code += NumToString(struct_def.fields.vec.size()) + ");\n";
@@ -1011,7 +1015,11 @@ static void GenStruct(const LanguageParameters &lang, const Parser &parser,
       }
       code += "    return " + struct_def.name + ".";
       code += FunctionStart(lang, 'E') + "nd" + struct_def.name;
-      code += "(builder);\n  }\n\n";
+      code += "(builder";
+      if (lang.language == IDLOptions::kCSharp) {
+        code += ", enableVtableReuse";
+      }
+      code += ");\n  }\n\n";
     }
     // Generate a set of static methods that allow table construction,
     // of the form:
@@ -1082,8 +1090,16 @@ static void GenStruct(const LanguageParameters &lang, const Parser &parser,
     }
     code += "  public static " + GenOffsetType(lang, parser, struct_def) + " ";
     code += FunctionStart(lang, 'E') + "nd" + struct_def.name;
-    code += "(FlatBufferBuilder builder) {\n    int o = builder.";
-    code += FunctionStart(lang, 'E') + "ndObject();\n";
+    code += "(FlatBufferBuilder builder";
+    if (lang.language == IDLOptions::kCSharp) {
+      code += ", bool enableVtableReuse = true";
+    }
+    code += ") {\n    int o = builder.";
+    code += FunctionStart(lang, 'E') + "ndObject(";
+    if (lang.language == IDLOptions::kCSharp) {
+      code += "enableVtableReuse";
+    }
+    code += ");\n";
     for (auto it = struct_def.fields.vec.begin();
          it != struct_def.fields.vec.end();
          ++it) {

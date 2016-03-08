@@ -109,8 +109,8 @@ public sealed class Monster : Table {
   public static void AddTestarrayofbools(FlatBufferBuilder builder, VectorOffset testarrayofboolsOffset) { builder.AddOffset(24, testarrayofboolsOffset.Value, 0); }
   public static VectorOffset CreateTestarrayofboolsVector(FlatBufferBuilder builder, bool[] data) { builder.StartVector(1, data.Length, 1); for (int i = data.Length - 1; i >= 0; i--) builder.AddBool(data[i]); return builder.EndVector(); }
   public static void StartTestarrayofboolsVector(FlatBufferBuilder builder, int numElems) { builder.StartVector(1, numElems, 1); }
-  public static Offset<Monster> EndMonster(FlatBufferBuilder builder) {
-    int o = builder.EndObject();
+  public static Offset<Monster> EndMonster(FlatBufferBuilder builder, bool enableVtableReuse = true) {
+    int o = builder.EndObject(enableVtableReuse);
     builder.Required(o, 10);  // name
     return new Offset<Monster>(o);
   }

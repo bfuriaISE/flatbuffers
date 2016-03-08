@@ -15,16 +15,17 @@ public partial class TestSimpleTableWithEnum : Table {
   public bool MutateColor(Color color) { int o = __offset(4); if (o != 0) { bb.PutSbyte(o + bb_pos, (sbyte)color); return true; } else { return false; } }
 
   public static Offset<TestSimpleTableWithEnum> CreateTestSimpleTableWithEnum(FlatBufferBuilder builder,
-      Color color = Color.Green) {
+      Color color = Color.Green,
+      bool enableVtableReuse = true) {
     builder.StartObject(1);
     TestSimpleTableWithEnum.AddColor(builder, color);
-    return TestSimpleTableWithEnum.EndTestSimpleTableWithEnum(builder);
+    return TestSimpleTableWithEnum.EndTestSimpleTableWithEnum(builder, enableVtableReuse);
   }
 
   public static void StartTestSimpleTableWithEnum(FlatBufferBuilder builder) { builder.StartObject(1); }
   public static void AddColor(FlatBufferBuilder builder, Color color) { builder.AddSbyte(0, (sbyte)color, 2); }
-  public static Offset<TestSimpleTableWithEnum> EndTestSimpleTableWithEnum(FlatBufferBuilder builder) {
-    int o = builder.EndObject();
+  public static Offset<TestSimpleTableWithEnum> EndTestSimpleTableWithEnum(FlatBufferBuilder builder, bool enableVtableReuse = true) {
+    int o = builder.EndObject(enableVtableReuse);
     return new Offset<TestSimpleTableWithEnum>(o);
   }
 };
