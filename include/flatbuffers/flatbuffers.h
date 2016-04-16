@@ -26,6 +26,7 @@
 #include <string>
 #include <type_traits>
 #include <vector>
+#include <set>
 #include <algorithm>
 #include <functional>
 #include <memory>
@@ -90,6 +91,14 @@
 #else
   #define FLATBUFFERS_FINAL_CLASS
 #endif
+
+#if (!defined(_MSC_VER) || _MSC_VER >= 1900) && \
+    (!defined(__GNUC__) || (__GNUC__ * 100 + __GNUC_MINOR__ >= 406))
+  #define FLATBUFFERS_CONSTEXPR constexpr
+#else
+  #define FLATBUFFERS_CONSTEXPR
+#endif
+
 /// @endcond
 
 /// @file
@@ -109,6 +118,9 @@ typedef int32_t soffset_t;
 typedef uint16_t voffset_t;
 
 typedef uintmax_t largest_scalar_t;
+
+// In 32bits, this evaluates to 2GB - 1
+#define FLATBUFFERS_MAX_BUFFER_SIZE ((1ULL << (sizeof(soffset_t) * 8 - 1)) - 1)
 
 // Pointer to relinquished memory.
 typedef std::unique_ptr<uint8_t, std::function<void(uint8_t * /* unused */)>>
@@ -485,7 +497,7 @@ class vector_downward {
     cur_ -= len;
     // Beyond this, signed offsets may not have enough range:
     // (FlatBuffers > 2GB not supported).
-    assert(size() < (1UL << (sizeof(soffset_t) * 8 - 1)) - 1);
+    assert(size() < FLATBUFFERS_MAX_BUFFER_SIZE);
     return cur_;
   }
 
@@ -499,7 +511,7 @@ class vector_downward {
     return cur_;
   }
 
-  uint8_t *data_at(size_t offset) { return buf_ + reserved_ - offset; }
+  uint8_t *data_at(size_t offset) const { return buf_ + reserved_ - offset; }
 
   // push() & fill() are most frequently called with small byte counts (<= 4),
   // which is why we're using loops rather than calling memcpy/memset.
@@ -530,7 +542,7 @@ class vector_downward {
 inline voffset_t FieldIndexToOffset(voffset_t field_id) {
   // Should correspond to what EndTable() below builds up.
   const int fixed_fields = 2;  // Vtable size and Object Size.
-  return (field_id + fixed_fields) * sizeof(voffset_t);
+  return static_cast<voffset_t>((field_id + fixed_fields) * sizeof(voffset_t));
 }
 
 // Computes how many bytes you'd have to pad to be able to write an
@@ -565,10 +577,15 @@ FLATBUFFERS_FINAL_CLASS
   explicit FlatBufferBuilder(uoffset_t initial_size = 1024,
                              const simple_allocator *allocator = nullptr)
       : buf_(initial_size, allocator ? *allocator : default_allocator),
-        nested(false), finished(false), minalign_(1), force_defaults_(false) {
+        nested(false), finished(false), minalign_(1), force_defaults_(false),
+        string_pool(nullptr) {
     offsetbuf_.reserve(16);  // Avoid first few reallocs.
     vtables_.reserve(16);
     EndianCheck();
+  }
+
+  ~FlatBufferBuilder() {
+    if (string_pool) delete string_pool;
   }
 
   /// @brief Reset all the state in this FlatBufferBuilder so it can be reused
@@ -580,6 +597,7 @@ FLATBUFFERS_FINAL_CLASS
     finished = false;
     vtables_.clear();
     minalign_ = 1;
+    if (string_pool) string_pool->clear();
   }
 
   /// @brief The current size of the serialized buffer, counting from the end.
@@ -705,7 +723,7 @@ FLATBUFFERS_FINAL_CLASS
     Align(sizeof(uoffset_t));
     // Offset must refer to something already in buffer.
     assert(off && off <= GetSize());
-    return GetSize() - off + sizeof(uoffset_t);
+    return GetSize() - off + static_cast<uoffset_t>(sizeof(uoffset_t));
   }
 
   void NotNested() {
@@ -829,7 +847,7 @@ FLATBUFFERS_FINAL_CLASS
     return Offset<String>(GetSize());
   }
 
-  /// @brief Store a string in the buffer, which can contain any binary data.
+  /// @brief Store a string in the buffer, which is null-terminated.
   /// @param[in] str A const char pointer to a C-string to add to the buffer.
   /// @return Returns the offset in the buffer where the string starts.
   Offset<String> CreateString(const char *str) {
@@ -848,6 +866,58 @@ FLATBUFFERS_FINAL_CLASS
   /// @return Returns the offset in the buffer where the string starts
   Offset<String> CreateString(const String *str) {
     return CreateString(str->c_str(), str->Length());
+  }
+
+  /// @brief Store a string in the buffer, which can contain any binary data.
+  /// If a string with this exact contents has already been serialized before,
+  /// instead simply returns the offset of the existing string.
+  /// @param[in] str A const char pointer to the data to be stored as a string.
+  /// @param[in] len The number of bytes that should be stored from `str`.
+  /// @return Returns the offset in the buffer where the string starts.
+  Offset<String> CreateSharedString(const char *str, size_t len) {
+    if (!string_pool)
+      string_pool = new StringOffsetMap(StringOffsetCompare(buf_));
+    auto size_before_string = buf_.size();
+    // Must first serialize the string, since the set is all offsets into
+    // buffer.
+    auto off = CreateString(str, len);
+    auto it = string_pool->find(off);
+    // If it exists we reuse existing serialized data!
+    if (it != string_pool->end()) {
+      // We can remove the string we serialized.
+      buf_.pop(buf_.size() - size_before_string);
+      return *it;
+    }
+    // Record this string for future use.
+    string_pool->insert(off);
+    return off;
+  }
+
+  /// @brief Store a string in the buffer, which null-terminated.
+  /// If a string with this exact contents has already been serialized before,
+  /// instead simply returns the offset of the existing string.
+  /// @param[in] str A const char pointer to a C-string to add to the buffer.
+  /// @return Returns the offset in the buffer where the string starts.
+  Offset<String> CreateSharedString(const char *str) {
+    return CreateSharedString(str, strlen(str));
+  }
+
+  /// @brief Store a string in the buffer, which can contain any binary data.
+  /// If a string with this exact contents has already been serialized before,
+  /// instead simply returns the offset of the existing string.
+  /// @param[in] str A const reference to a std::string to store in the buffer.
+  /// @return Returns the offset in the buffer where the string starts.
+  Offset<String> CreateSharedString(const std::string &str) {
+    return CreateSharedString(str.c_str(), str.length());
+  }
+
+  /// @brief Store a string in the buffer, which can contain any binary data.
+  /// If a string with this exact contents has already been serialized before,
+  /// instead simply returns the offset of the existing string.
+  /// @param[in] str A const pointer to a `String` struct to add to the buffer.
+  /// @return Returns the offset in the buffer where the string starts
+  Offset<String> CreateSharedString(const String *str) {
+    return CreateSharedString(str->c_str(), str->Length());
   }
 
   /// @cond FLATBUFFERS_INTERNAL
@@ -981,8 +1051,11 @@ FLATBUFFERS_FINAL_CLASS
                                       uint8_t **buf) {
     NotNested();
     StartVector(len, elemsize);
-    *buf = buf_.make_space(len * elemsize);
-    return EndVector(len);
+    buf_.make_space(len * elemsize);
+    auto vec_start = GetSize();
+    auto vec_end = EndVector(len);
+    *buf = buf_.data_at(vec_start);
+    return vec_end;
   }
 
   /// @brief Specialized version of `CreateVector` for non-copying use cases.
@@ -1048,6 +1121,21 @@ FLATBUFFERS_FINAL_CLASS
   size_t minalign_;
 
   bool force_defaults_;  // Serialize values equal to their defaults anyway.
+
+  struct StringOffsetCompare {
+    StringOffsetCompare(const vector_downward &buf) : buf_(&buf) {}
+    bool operator() (const Offset<String> &a, const Offset<String> &b) const {
+      auto stra = reinterpret_cast<const String *>(buf_->data_at(a.o));
+      auto strb = reinterpret_cast<const String *>(buf_->data_at(b.o));
+      return strncmp(stra->c_str(), strb->c_str(),
+                     std::min(stra->size(), strb->size()) + 1) < 0;
+    }
+    const vector_downward *buf_;
+  };
+
+  // For use with CreateSharedString. Instantiated on first use only.
+  typedef std::set<Offset<String>, StringOffsetCompare> StringOffsetMap;
+  StringOffsetMap *string_pool;
 };
 /// @}
 
@@ -1088,7 +1176,9 @@ class Verifier FLATBUFFERS_FINAL_CLASS {
 
   // Verify any range within the buffer.
   bool Verify(const void *elem, size_t elem_len) const {
-    return Check(elem_len <= (size_t) (end_ - buf_) && elem >= buf_ && elem <= end_ - elem_len);
+    return Check(elem_len <= (size_t) (end_ - buf_) &&
+                 elem >= buf_ &&
+                 elem <= end_ - elem_len);
   }
 
   // Verify a range indicated by sizeof(T).
@@ -1131,6 +1221,8 @@ class Verifier FLATBUFFERS_FINAL_CLASS {
     // Check the whole array. If this is a string, the byte past the array
     // must be 0.
     auto size = ReadScalar<uoffset_t>(vec);
+    auto max_elems = FLATBUFFERS_MAX_BUFFER_SIZE / elem_size;
+    Check(size < max_elems);  // Protect against byte_size overflowing.
     auto byte_size = sizeof(size) + elem_size * size;
     *end = vec + byte_size;
     return Verify(vec, byte_size);

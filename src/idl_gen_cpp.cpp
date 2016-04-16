@@ -267,6 +267,20 @@ std::string GenFieldOffsetName(const FieldDef &field) {
   return "VT_" + uname;
 }
 
+static void GenFullyQualifiedNameGetter(const Parser &parser, const std::string& name, std::string &code) {
+  if (parser.opts.generate_name_strings) {
+    code += "  static FLATBUFFERS_CONSTEXPR const char *GetFullyQualifiedName() {\n";
+    code += "    return \"" + parser.namespaces_.back()->GetFullyQualifiedName(name) + "\";\n";
+    code += "  }\n";
+  }
+}
+
+std::string GenDefaultConstant(const FieldDef &field) {
+  return field.value.type.base_type == BASE_TYPE_FLOAT
+      ? field.value.constant + "f"
+      : field.value.constant;
+}
+
 // Generate an accessor struct, builder structs & function for a table.
 static void GenTable(const Parser &parser, StructDef &struct_def,
                      std::string *code_ptr) {
@@ -277,6 +291,8 @@ static void GenTable(const Parser &parser, StructDef &struct_def,
   code += "struct " + struct_def.name;
   code += " FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table";
   code += " {\n";
+  // Generate GetFullyQualifiedName
+  GenFullyQualifiedNameGetter(parser, struct_def.name, code);
   // Generate field id constants.
   if (struct_def.fields.vec.size() > 0) {
     code += "  enum {\n";
@@ -321,7 +337,7 @@ static void GenTable(const Parser &parser, StructDef &struct_def,
           ">(" + offsetstr;
       // Default value as second arg for non-pointer types.
       if (IsScalar(field.value.type.base_type))
-        call += ", " + field.value.constant;
+        call += ", " + GenDefaultConstant(field);
       call += ")";
       code += GenUnderlyingCast(field, true, call);
       code += "; }\n";
@@ -460,7 +476,7 @@ static void GenTable(const Parser &parser, StructDef &struct_def,
       code += "(" + struct_def.name + "::" + GenFieldOffsetName(field) + ", ";
       code += GenUnderlyingCast(field, false, field.name);
       if (IsScalar(field.value.type.base_type))
-        code += ", " + field.value.constant;
+        code += ", " + GenDefaultConstant(field);
       code += "); }\n";
     }
   }
@@ -510,7 +526,7 @@ static void GenTable(const Parser &parser, StructDef &struct_def,
       } else if (field.value.type.base_type == BASE_TYPE_BOOL) {
         code += field.value.constant == "0" ? "false" : "true";
       } else {
-        code += field.value.constant;
+        code += GenDefaultConstant(field);
       }
     }
   }
@@ -583,8 +599,12 @@ static void GenStruct(const Parser &parser, StructDef &struct_def,
     GenPadding(field, code, padding_id, PaddingDefinition);
   }
 
+  // Generate GetFullyQualifiedName
+  code += "\n public:\n";
+  GenFullyQualifiedNameGetter(parser, struct_def.name, code);
+
   // Generate a constructor that takes all fields as arguments.
-  code += "\n public:\n  " + struct_def.name + "(";
+  code += "  " + struct_def.name + "(";
   for (auto it = struct_def.fields.vec.begin();
        it != struct_def.fields.vec.end();
        ++it) {
@@ -763,8 +783,10 @@ std::string GenerateCPP(const Parser &parser,
   for (auto it = parser.structs_.vec.begin();
        it != parser.structs_.vec.end(); ++it) {
     auto &struct_def = **it;
-    CheckNameSpace(struct_def, &code);
-    code += "struct " + struct_def.name + ";\n\n";
+    if (!struct_def.generated) {
+      CheckNameSpace(struct_def, &code);
+      code += "struct " + struct_def.name + ";\n\n";
+    }
   }
 
   // Generate code for all the enum declarations.

@@ -152,7 +152,8 @@ std::string Namespace::GetFullyQualifiedName(const std::string &name,
   TD(FileExtension, 268, "file_extension") \
   TD(Include, 269, "include") \
   TD(Attribute, 270, "attribute") \
-  TD(Null, 271, "null")
+  TD(Null, 271, "null") \
+  TD(Service, 272, "rpc_service")
 #ifdef __GNUC__
 __extension__  // Stop GCC complaining about trailing comma with -Wpendantic.
 #endif
@@ -207,6 +208,10 @@ CheckedError Parser::SkipByteOrderMark() {
   if (static_cast<unsigned char>(*cursor_++) != 0xbb) return Error("invalid utf-8 byte order mark");
   if (static_cast<unsigned char>(*cursor_++) != 0xbf) return Error("invalid utf-8 byte order mark");
   return NoError();
+}
+
+bool IsIdentifierStart(char c) {
+  return isalpha(static_cast<unsigned char>(c)) || c == '_';
 }
 
 CheckedError Parser::Next() {
@@ -288,7 +293,7 @@ CheckedError Parser::Next() {
         }
         // fall thru
       default:
-        if (isalpha(static_cast<unsigned char>(c)) || c == '_') {
+        if (IsIdentifierStart(c)) {
           // Collect all chars of an identifier:
           const char *start = cursor_ - 1;
           while (isalnum(static_cast<unsigned char>(*cursor_)) ||
@@ -354,6 +359,10 @@ CheckedError Parser::Next() {
           }
           if (attribute_ == "null") {
             token_ = kTokenNull;
+            return NoError();
+          }
+          if (attribute_ == "rpc_service") {
+            token_ = kTokenService;
             return NoError();
           }
           // If not, it is a user-defined identifier:
@@ -547,7 +556,7 @@ CheckedError Parser::ParseField(StructDef &struct_def) {
           field->value.constant);
 
   field->doc_comment = dc;
-  ECHECK(ParseMetaData(*field));
+  ECHECK(ParseMetaData(&field->attributes));
   field->deprecated = field->attributes.Lookup("deprecated") != nullptr;
   auto hash_name = field->attributes.Lookup("hash");
   if (hash_name) {
@@ -837,7 +846,7 @@ CheckedError Parser::ParseVector(const Type &type, uoffset_t *ovalue) {
   return NoError();
 }
 
-CheckedError Parser::ParseMetaData(Definition &def) {
+CheckedError Parser::ParseMetaData(SymbolTable<Value> *attributes) {
   if (Is('(')) {
     NEXT();
     for (;;) {
@@ -847,7 +856,7 @@ CheckedError Parser::ParseMetaData(Definition &def) {
         return Error("user define attributes must be declared before use: " +
                      name);
       auto e = new Value();
-      def.attributes.Add(name, e);
+      attributes->Add(name, e);
       if (Is(':')) {
         NEXT();
         ECHECK(ParseSingleValue(*e));
@@ -880,7 +889,7 @@ CheckedError Parser::TryTypedValue(int dtoken, bool check, Value &e,
   return NoError();
 }
 
-CheckedError Parser::ParseIntegerFromString(Type &type, int64_t *result) {
+CheckedError Parser::ParseEnumFromString(Type &type, int64_t *result) {
   *result = 0;
   // Parse one or more enum identifiers, separated by spaces.
   const char *next = attribute_.c_str();
@@ -950,10 +959,23 @@ CheckedError Parser::ParseSingleValue(Value &e) {
   if (e.type.base_type != BASE_TYPE_STRING &&
       e.type.base_type != BASE_TYPE_NONE &&
       (token_ == kTokenIdentifier || token_ == kTokenStringConstant)) {
-    int64_t val;
-    ECHECK(ParseIntegerFromString(e.type, &val));
-    e.constant = NumToString(val);
-    NEXT();
+    if (IsIdentifierStart(attribute_[0])) {  // Enum value.
+      int64_t val;
+      ECHECK(ParseEnumFromString(e.type, &val));
+      e.constant = NumToString(val);
+      NEXT();
+    } else {  // Numeric constant in string.
+      if (IsInteger(e.type.base_type)) {
+        // TODO(wvo): do we want to check for garbage after the number?
+        e.constant = NumToString(StringToInt(attribute_.c_str()));
+      } else if (IsFloat(e.type.base_type)) {
+        e.constant = NumToString(strtod(attribute_.c_str(), nullptr));
+      } else {
+        assert(0);  // Shouldn't happen, we covered all types.
+        e.constant = "0";
+      }
+      NEXT();
+    }
   } else {
     bool match = false;
     ECHECK(TryTypedValue(kTokenIntegerConstant,
@@ -1068,7 +1090,7 @@ CheckedError Parser::ParseEnum(bool is_union, EnumDef **dest) {
     // Make this type refer back to the enum it was derived from.
     enum_def.underlying_type.enum_def = &enum_def;
   }
-  ECHECK(ParseMetaData(enum_def));
+  ECHECK(ParseMetaData(&enum_def.attributes));
   EXPECT('{');
   if (is_union) enum_def.vals.Add("NONE", new EnumVal("NONE", 0));
   for (;;) {
@@ -1174,7 +1196,7 @@ CheckedError Parser::ParseDecl() {
   ECHECK(StartStruct(name, &struct_def));
   struct_def->doc_comment = dc;
   struct_def->fixed = fixed;
-  ECHECK(ParseMetaData(*struct_def));
+  ECHECK(ParseMetaData(&struct_def->attributes));
   struct_def->sortbysize =
     struct_def->attributes.Lookup("original_order") == nullptr && !fixed;
   EXPECT('{');
@@ -1224,6 +1246,46 @@ CheckedError Parser::ParseDecl() {
   ECHECK(CheckClash(fields, struct_def, "_byte_vector", BASE_TYPE_STRING));
   ECHECK(CheckClash(fields, struct_def, "ByteVector", BASE_TYPE_STRING));
   EXPECT('}');
+  return NoError();
+}
+
+CheckedError Parser::ParseService() {
+  std::vector<std::string> service_comment = doc_comment_;
+  NEXT();
+  auto service_name = attribute_;
+  EXPECT(kTokenIdentifier);
+  auto &service_def = *new ServiceDef();
+  service_def.name = service_name;
+  service_def.file = file_being_parsed_;
+  service_def.doc_comment = service_comment;
+  service_def.defined_namespace = namespaces_.back();
+  if (services_.Add(namespaces_.back()->GetFullyQualifiedName(service_name),
+                    &service_def))
+    return Error("service already exists: " + service_name);
+  ECHECK(ParseMetaData(&service_def.attributes));
+  EXPECT('{');
+  do {
+    auto rpc_name = attribute_;
+    EXPECT(kTokenIdentifier);
+    EXPECT('(');
+    Type reqtype, resptype;
+    ECHECK(ParseTypeIdent(reqtype));
+    EXPECT(')');
+    EXPECT(':');
+    ECHECK(ParseTypeIdent(resptype));
+    if (reqtype.base_type != BASE_TYPE_STRUCT || reqtype.struct_def->fixed ||
+        resptype.base_type != BASE_TYPE_STRUCT || resptype.struct_def->fixed)
+        return Error("rpc request and response types must be tables");
+    auto &rpc = *new RPCCall();
+    rpc.name = rpc_name;
+    rpc.request = reqtype.struct_def;
+    rpc.response = resptype.struct_def;
+    if (service_def.calls.Add(rpc_name, &rpc))
+      return Error("rpc already exists: " + rpc_name);
+    ECHECK(ParseMetaData(&rpc.attributes));
+    EXPECT(';');
+  } while (token_ != '}');
+  NEXT();
   return NoError();
 }
 
@@ -1722,7 +1784,9 @@ CheckedError Parser::DoParse(const char *source, const char **include_paths,
       auto name = attribute_;
       EXPECT(kTokenStringConstant);
       EXPECT(';');
-      known_attributes_.insert(name);
+      known_attributes_[name] = false;
+    } else if (token_ == kTokenService) {
+      ECHECK(ParseService());
     } else {
       ECHECK(ParseDecl());
     }
@@ -1789,13 +1853,13 @@ void Parser::Serialize() {
   AssignIndices(enums_.vec);
   std::vector<Offset<reflection::Object>> object_offsets;
   for (auto it = structs_.vec.begin(); it != structs_.vec.end(); ++it) {
-    auto offset = (*it)->Serialize(&builder_);
+    auto offset = (*it)->Serialize(&builder_, *this);
     object_offsets.push_back(offset);
     (*it)->serialized_location = offset.o;
   }
   std::vector<Offset<reflection::Enum>> enum_offsets;
   for (auto it = enums_.vec.begin(); it != enums_.vec.end(); ++it) {
-    auto offset = (*it)->Serialize(&builder_);
+    auto offset = (*it)->Serialize(&builder_, *this);
     enum_offsets.push_back(offset);
     (*it)->serialized_location = offset.o;
   }
@@ -1811,13 +1875,13 @@ void Parser::Serialize() {
   builder_.Finish(schema_offset, reflection::SchemaIdentifier());
 }
 
-Offset<reflection::Object> StructDef::Serialize(FlatBufferBuilder *builder)
-                                                                         const {
+Offset<reflection::Object> StructDef::Serialize(FlatBufferBuilder *builder,
+                                                const Parser &parser) const {
   std::vector<Offset<reflection::Field>> field_offsets;
   for (auto it = fields.vec.begin(); it != fields.vec.end(); ++it) {
     field_offsets.push_back(
       (*it)->Serialize(builder,
-                       static_cast<uint16_t>(it - fields.vec.begin())));
+                       static_cast<uint16_t>(it - fields.vec.begin()), parser));
   }
   return reflection::CreateObject(*builder,
                                   builder->CreateString(name),
@@ -1825,11 +1889,13 @@ Offset<reflection::Object> StructDef::Serialize(FlatBufferBuilder *builder)
                                     &field_offsets),
                                   fixed,
                                   static_cast<int>(minalign),
-                                  static_cast<int>(bytesize));
+                                  static_cast<int>(bytesize),
+                                  SerializeAttributes(builder, parser));
 }
 
 Offset<reflection::Field> FieldDef::Serialize(FlatBufferBuilder *builder,
-                                              uint16_t id) const {
+                                              uint16_t id,
+                                              const Parser &parser) const {
   return reflection::CreateField(*builder,
                                  builder->CreateString(name),
                                  value.type.Serialize(builder),
@@ -1843,12 +1909,14 @@ Offset<reflection::Field> FieldDef::Serialize(FlatBufferBuilder *builder,
                                    : 0.0,
                                  deprecated,
                                  required,
-                                 key);
+                                 key,
+                                 SerializeAttributes(builder, parser));
   // TODO: value.constant is almost always "0", we could save quite a bit of
   // space by sharing it. Same for common values of value.type.
 }
 
-Offset<reflection::Enum> EnumDef::Serialize(FlatBufferBuilder *builder) const {
+Offset<reflection::Enum> EnumDef::Serialize(FlatBufferBuilder *builder,
+                                            const Parser &parser) const {
   std::vector<Offset<reflection::EnumVal>> enumval_offsets;
   for (auto it = vals.vec.begin(); it != vals.vec.end(); ++it) {
     enumval_offsets.push_back((*it)->Serialize(builder));
@@ -1857,7 +1925,8 @@ Offset<reflection::Enum> EnumDef::Serialize(FlatBufferBuilder *builder) const {
                                 builder->CreateString(name),
                                 builder->CreateVector(enumval_offsets),
                                 is_union,
-                                underlying_type.Serialize(builder));
+                                underlying_type.Serialize(builder),
+                                SerializeAttributes(builder, parser));
 }
 
 Offset<reflection::EnumVal> EnumVal::Serialize(FlatBufferBuilder *builder) const
@@ -1876,6 +1945,28 @@ Offset<reflection::Type> Type::Serialize(FlatBufferBuilder *builder) const {
                                 static_cast<reflection::BaseType>(element),
                                 struct_def ? struct_def->index :
                                              (enum_def ? enum_def->index : -1));
+}
+
+flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<
+  reflection::KeyValue>>>
+    Definition::SerializeAttributes(FlatBufferBuilder *builder,
+                                    const Parser &parser) const {
+  std::vector<flatbuffers::Offset<reflection::KeyValue>> attrs;
+  for (auto kv : attributes.dict) {
+    auto it = parser.known_attributes_.find(kv.first);
+    assert(it != parser.known_attributes_.end());
+    if (!it->second) {  // Custom attribute.
+      attrs.push_back(
+          reflection::CreateKeyValue(*builder, builder->CreateString(kv.first),
+                                     builder->CreateString(
+                                         kv.second->constant)));
+    }
+  }
+  if (attrs.size()) {
+    return builder->CreateVectorOfSortedTables(&attrs);
+  } else {
+    return 0;
+  }
 }
 
 }  // namespace flatbuffers

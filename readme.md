@@ -15,6 +15,7 @@ unpacking/parsing it first, while still having great forwards/backwards compatib
 ## Supported programming languages
 * C++
 * C#
+* C
 * Go
 * Java
 * JavaScript
@@ -47,7 +48,7 @@ you would leave it in.
 
    [CONTRIBUTING]: http://github.com/google/flatbuffers/blob/master/CONTRIBUTING
    [`flatbuffers` tag]: https://stackoverflow.com/questions/tagged/flatbuffers
-   [FlatBuffers Google Group]: http://group.google.com/group/flatbuffers
+   [FlatBuffers Google Group]: https://groups.google.com/forum/#!forum/flatbuffers
    [FlatBuffers Issues Tracker]: http://github.com/google/flatbuffers/issues
    [stackoverflow.com]: http://www.stackoverflow.com
    [landing page]: http://google.github.io/flatbuffers

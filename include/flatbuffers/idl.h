@@ -18,7 +18,6 @@
 #define FLATBUFFERS_IDL_H_
 
 #include <map>
-#include <set>
 #include <stack>
 #include <memory>
 #include <functional>
@@ -113,6 +112,7 @@ inline size_t SizeOf(BaseType t) {
 
 struct StructDef;
 struct EnumDef;
+class Parser;
 
 // Represents any type in the IDL, which is a combination of the BaseType
 // and additional information for vectors/structs_.
@@ -184,10 +184,8 @@ template<typename T> class SymbolTable {
     return it == dict.end() ? nullptr : it->second;
   }
 
- private:
-  std::map<std::string, T *> dict;      // quick lookup
-
  public:
+  std::map<std::string, T *> dict;      // quick lookup
   std::vector<T *> vec;  // Used to iterate in order of insertion
 };
 
@@ -208,6 +206,11 @@ struct Definition {
   Definition() : generated(false), defined_namespace(nullptr),
                  serialized_location(0), index(-1) {}
 
+  flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<
+    reflection::KeyValue>>>
+      SerializeAttributes(FlatBufferBuilder *builder,
+                          const Parser &parser) const;
+
   std::string name;
   std::string file;
   std::vector<std::string> doc_comment;
@@ -223,8 +226,8 @@ struct Definition {
 struct FieldDef : public Definition {
   FieldDef() : deprecated(false), required(false), key(false), padding(0) {}
 
-  Offset<reflection::Field> Serialize(FlatBufferBuilder *builder, uint16_t id)
-                                                                          const;
+  Offset<reflection::Field> Serialize(FlatBufferBuilder *builder, uint16_t id,
+                                      const Parser &parser) const;
 
   Value value;
   bool deprecated; // Field is allowed to be present in old data, but can't be
@@ -250,7 +253,8 @@ struct StructDef : public Definition {
     if (fields.vec.size()) fields.vec.back()->padding = padding;
   }
 
-  Offset<reflection::Object> Serialize(FlatBufferBuilder *builder) const;
+  Offset<reflection::Object> Serialize(FlatBufferBuilder *builder,
+                                       const Parser &parser) const;
 
   SymbolTable<FieldDef> fields;
   bool fixed;       // If it's struct, not a table.
@@ -299,11 +303,22 @@ struct EnumDef : public Definition {
     return nullptr;
   }
 
-  Offset<reflection::Enum> Serialize(FlatBufferBuilder *builder) const;
+  Offset<reflection::Enum> Serialize(FlatBufferBuilder *builder,
+                                     const Parser &parser) const;
 
   SymbolTable<EnumVal> vals;
   bool is_union;
   Type underlying_type;
+};
+
+struct RPCCall {
+  std::string name;
+  SymbolTable<Value> attributes;
+  StructDef *request, *response;
+};
+
+struct ServiceDef : public Definition {
+  SymbolTable<RPCCall> calls;
 };
 
 // Container of options that may apply to any of the source/text generators.
@@ -321,6 +336,7 @@ struct IDLOptions {
   bool proto_mode;
   bool generate_all;
   bool skip_unexpected_fields_in_json;
+  bool generate_name_strings;
 
   // Possible options for the more general generator below.
   enum Language { kJava, kCSharp, kGo, kMAX };
@@ -339,6 +355,7 @@ struct IDLOptions {
       proto_mode(false),
       generate_all(false),
       skip_unexpected_fields_in_json(false),
+      generate_name_strings(false),
       lang(IDLOptions::kJava) {}
 };
 
@@ -394,16 +411,18 @@ class Parser {
       anonymous_counter(0) {
     // Just in case none are declared:
     namespaces_.push_back(new Namespace());
-    known_attributes_.insert("deprecated");
-    known_attributes_.insert("required");
-    known_attributes_.insert("key");
-    known_attributes_.insert("hash");
-    known_attributes_.insert("id");
-    known_attributes_.insert("force_align");
-    known_attributes_.insert("bit_flags");
-    known_attributes_.insert("original_order");
-    known_attributes_.insert("nested_flatbuffer");
-    known_attributes_.insert("csharp_partial");
+    known_attributes_["deprecated"] = true;
+    known_attributes_["required"] = true;
+    known_attributes_["key"] = true;
+    known_attributes_["hash"] = true;
+    known_attributes_["id"] = true;
+    known_attributes_["force_align"] = true;
+    known_attributes_["bit_flags"] = true;
+    known_attributes_["original_order"] = true;
+    known_attributes_["nested_flatbuffer"] = true;
+    known_attributes_["csharp_partial"] = true;
+    known_attributes_["stream"] = true;
+    known_attributes_["idempotent"] = true;
   }
 
   ~Parser() {
@@ -465,12 +484,12 @@ private:
   void SerializeStruct(const StructDef &struct_def, const Value &val);
   void AddVector(bool sortbysize, int count);
   FLATBUFFERS_CHECKED_ERROR ParseVector(const Type &type, uoffset_t *ovalue);
-  FLATBUFFERS_CHECKED_ERROR ParseMetaData(Definition &def);
+  FLATBUFFERS_CHECKED_ERROR ParseMetaData(SymbolTable<Value> *attributes);
   FLATBUFFERS_CHECKED_ERROR TryTypedValue(int dtoken, bool check, Value &e,
                                           BaseType req, bool *destmatch);
   FLATBUFFERS_CHECKED_ERROR ParseHash(Value &e, FieldDef* field);
   FLATBUFFERS_CHECKED_ERROR ParseSingleValue(Value &e);
-  FLATBUFFERS_CHECKED_ERROR ParseIntegerFromString(Type &type, int64_t *result);
+  FLATBUFFERS_CHECKED_ERROR ParseEnumFromString(Type &type, int64_t *result);
   StructDef *LookupCreateStruct(const std::string &name,
                                 bool create_if_new = true,
                                 bool definition = false);
@@ -479,6 +498,7 @@ private:
   FLATBUFFERS_CHECKED_ERROR StartStruct(const std::string &name,
                                         StructDef **dest);
   FLATBUFFERS_CHECKED_ERROR ParseDecl();
+  FLATBUFFERS_CHECKED_ERROR ParseService();
   FLATBUFFERS_CHECKED_ERROR ParseProtoFields(StructDef *struct_def,
                                              bool isextend, bool inside_oneof);
   FLATBUFFERS_CHECKED_ERROR ParseProtoOption();
@@ -501,6 +521,7 @@ private:
  public:
   SymbolTable<StructDef> structs_;
   SymbolTable<EnumDef> enums_;
+  SymbolTable<ServiceDef> services_;
   std::vector<Namespace *> namespaces_;
   std::string error_;         // User readable error_ if Parse() == false
 
@@ -511,6 +532,8 @@ private:
 
   std::map<std::string, bool> included_files_;
   std::map<std::string, std::set<std::string>> files_included_per_file_;
+
+  std::map<std::string, bool> known_attributes_;
 
   IDLOptions opts;
 
@@ -524,8 +547,6 @@ private:
   std::vector<std::string> doc_comment_;
 
   std::vector<std::pair<Value, FieldDef *>> field_stack_;
-
-  std::set<std::string> known_attributes_;
 
   int anonymous_counter;
 };
