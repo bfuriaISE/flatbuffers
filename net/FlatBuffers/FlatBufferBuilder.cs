@@ -467,6 +467,200 @@ namespace FlatBuffers
             return new StringOffset(EndVector().Value);
         }
 
+        /// <summary>
+        /// Create a vector of bytes using <paramref name="buffer"/> as the source
+        /// </summary>
+        /// <param name="buffer">source byte buffer</param>
+        /// <param name="offset">source start offset</param>
+        /// <param name="count">number of bytes to copy</param>
+        /// <returns>
+        /// The offset in the buffer where the vector starts.
+        /// </returns>
+        public VectorOffset CreateByteVector(byte[] buffer, int offset, int count) {
+          StartVector(sizeof(byte), count, sizeof(byte));
+          int size = sizeof(byte)*count;
+          Buffer.BlockCopy(buffer, offset, _bb.Data, _space -= size, size);
+          return new VectorOffset(EndVector().Value);
+        }
+
+        /// <summary>
+        /// Create a vector of bytes using <paramref name="byteBuffer"/> as the source
+        /// </summary>
+        /// <param name="byteBuffer">source byte buffer</param>
+        /// <returns>
+        /// The offset in the buffer where the vector starts.
+        /// </returns>
+        public VectorOffset CreateByteVector(ByteBuffer byteBuffer) {
+          int offset = byteBuffer.Position;
+          int count = byteBuffer.Length - offset;
+          return CreateByteVector(byteBuffer.Data, offset, count);
+        }
+
+        /// <summary>
+        /// Create a vector of sbytes using <paramref name="buffer"/> as the source
+        /// </summary>
+        /// <param name="buffer">source sbyte buffer</param>
+        /// <param name="offset">source start offset</param>
+        /// <param name="count">number of sbytes to copy</param>
+        /// <returns>
+        /// The offset in the buffer where the vector starts.
+        /// </returns>
+        public VectorOffset CreateSbyteVector(sbyte[] buffer, int offset, int count) {
+          StartVector(sizeof(sbyte), count, sizeof(sbyte));
+          int size = sizeof(sbyte) * count;
+          Buffer.BlockCopy(buffer, offset, _bb.Data, _space -= size, size);
+          return new VectorOffset(EndVector().Value);
+        }
+
+        /// <summary>
+        /// Create a vector of booleans using <paramref name="buffer"/> as the source
+        /// </summary>
+        /// <param name="buffer">source boolean buffer</param>
+        /// <param name="offset">source start offset</param>
+        /// <param name="count">number of booleans to copy</param>
+        /// <returns>
+        /// The offset in the buffer where the vector starts.
+        /// </returns>
+        public VectorOffset CreateBoolVector(bool[] buffer, int offset, int count) {
+          StartVector(sizeof(bool), count, sizeof(bool));
+          // We can't use officially use Buffer.BlockCopy since we're not guaranteed that true
+          // is represented as 0x1.
+          for (int i = offset + count - 1; i >= offset; i--) {
+            // use PutBool instead of AddBool since alignment and capacity was already handled
+            // by StartVector
+            PutBool(buffer[i]);
+          }
+          return new VectorOffset(EndVector().Value);
+        }
+
+        /// <summary>
+        /// Create a vector of shorts using <paramref name="buffer"/> as the source
+        /// </summary>
+        /// <param name="buffer">source short buffer</param>
+        /// <param name="offset">source start offset</param>
+        /// <param name="count">number of shorts to copy</param>
+        /// <returns>
+        /// The offset in the buffer where the vector starts.
+        /// </returns>
+        public VectorOffset CreateShortVector(short[] buffer, int offset, int count) {
+          StartVector(sizeof(short), count, sizeof(short));
+          int size = sizeof(short) * count;
+          Buffer.BlockCopy(buffer, offset, _bb.Data, _space -= size, size);
+          return new VectorOffset(EndVector().Value);
+        }
+
+        /// <summary>
+        /// Create a vector of ushorts using <paramref name="buffer"/> as the source
+        /// </summary>
+        /// <param name="buffer">source ushort buffer</param>
+        /// <param name="offset">source start offset</param>
+        /// <param name="count">number of ushorts to copy</param>
+        /// <returns>
+        /// The offset in the buffer where the vector starts.
+        /// </returns>
+        public VectorOffset CreateUshortVector(ushort[] buffer, int offset, int count) {
+          StartVector(sizeof(ushort), count, sizeof(ushort));
+          int size = sizeof(ushort) * count;
+          Buffer.BlockCopy(buffer, offset, _bb.Data, _space -= size, size);
+          return new VectorOffset(EndVector().Value);
+        }
+
+        /// <summary>
+        /// Create a vector of ints using <paramref name="buffer"/> as the source
+        /// </summary>
+        /// <param name="buffer">source int buffer</param>
+        /// <param name="offset">source start offset</param>
+        /// <param name="count">number of ints to copy</param>
+        /// <returns>
+        /// The offset in the buffer where the vector starts.
+        /// </returns>
+        public VectorOffset CreateIntVector(int[] buffer, int offset, int count) {
+          StartVector(sizeof(int), count, sizeof(int));
+          int size = sizeof(int) * count;
+          Buffer.BlockCopy(buffer, offset, _bb.Data, _space -= size, size);
+          return new VectorOffset(EndVector().Value);
+        }
+
+        /// <summary>
+        /// Create a vector of uints using <paramref name="buffer"/> as the source
+        /// </summary>
+        /// <param name="buffer">source uint buffer</param>
+        /// <param name="offset">source start offset</param>
+        /// <param name="count">number of uints to copy</param>
+        /// <returns>
+        /// The offset in the buffer where the vector starts.
+        /// </returns>
+        public VectorOffset CreateUintVector(uint[] buffer, int offset, int count) {
+          StartVector(sizeof(uint), count, sizeof(uint));
+          int size = sizeof(uint) * count;
+          Buffer.BlockCopy(buffer, offset, _bb.Data, _space -= size, size);
+          return new VectorOffset(EndVector().Value);
+        }
+
+        /// <summary>
+        /// Create a vector of longs using <paramref name="buffer"/> as the source
+        /// </summary>
+        /// <param name="buffer">source long buffer</param>
+        /// <param name="offset">source start offset</param>
+        /// <param name="count">number of longs to copy</param>
+        /// <returns>
+        /// The offset in the buffer where the vector starts.
+        /// </returns>
+        public VectorOffset CreateLongVector(long[] buffer, int offset, int count) {
+          StartVector(sizeof(long), count, sizeof(long));
+          int size = sizeof(long) * count;
+          Buffer.BlockCopy(buffer, offset, _bb.Data, _space -= size, size);
+          return new VectorOffset(EndVector().Value);
+        }
+
+        /// <summary>
+        /// Create a vector of ulongs using <paramref name="buffer"/> as the source
+        /// </summary>
+        /// <param name="buffer">source ulong buffer</param>
+        /// <param name="offset">source start offset</param>
+        /// <param name="count">number of ulongs to copy</param>
+        /// <returns>
+        /// The offset in the buffer where the vector starts.
+        /// </returns>
+        public VectorOffset CreateUlongVector(ulong[] buffer, int offset, int count) {
+          StartVector(sizeof(ulong), count, sizeof(ulong));
+          int size = sizeof(ulong) * count;
+          Buffer.BlockCopy(buffer, offset, _bb.Data, _space -= size, size);
+          return new VectorOffset(EndVector().Value);
+        }
+
+        /// <summary>
+        /// Create a vector of floats using <paramref name="buffer"/> as the source
+        /// </summary>
+        /// <param name="buffer">source float buffer</param>
+        /// <param name="offset">source start offset</param>
+        /// <param name="count">number of floats to copy</param>
+        /// <returns>
+        /// The offset in the buffer where the vector starts.
+        /// </returns>
+        public VectorOffset CreateFloatVector(float[] buffer, int offset, int count) {
+          StartVector(sizeof(float), count, sizeof(float));
+          int size = sizeof(float) * count;
+          Buffer.BlockCopy(buffer, offset, _bb.Data, _space -= size, size);
+          return new VectorOffset(EndVector().Value);
+        }
+
+        /// <summary>
+        /// Create a vector of doubles using <paramref name="buffer"/> as the source
+        /// </summary>
+        /// <param name="buffer">source double buffer</param>
+        /// <param name="offset">source start offset</param>
+        /// <param name="count">number of doubles to copy</param>
+        /// <returns>
+        /// The offset in the buffer where the vector starts.
+        /// </returns>
+        public VectorOffset CreateDoubleVector(double[] buffer, int offset, int count) {
+          StartVector(sizeof(double), count, sizeof(double));
+          int size = sizeof(double) * count;
+          Buffer.BlockCopy(buffer, offset, _bb.Data, _space -= size, size);
+          return new VectorOffset(EndVector().Value);
+        }
+
         /// @cond FLATBUFFERS_INTERNAL
         // Structs are stored inline, so nothing additional is being added.
         // `d` is always 0.

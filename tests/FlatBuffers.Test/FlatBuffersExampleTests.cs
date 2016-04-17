@@ -68,6 +68,14 @@ namespace FlatBuffers.Test
             fbb.AddOffset(test1.Value);
             var testArrayOfString = fbb.EndVector();
 
+            var testArrayOfBytes = Monster.CreateTestarrayofbytesVector(fbb, new byte[] {0x1,0x2,0x3});
+            var testArrayOfLongs = Monster.CreateTestarrayoflongsVector(fbb, new long[] { 1, 2, 3 });
+            var testArrayOfBools1 = Monster.CreateTestarrayofbools1Vector(fbb, new[] {true, false, false});
+            var testArrayOfInts = Monster.CreateTestarrayofintsVector(fbb, new[] { 1, 2, 3 });
+            var testArrayOfShorts = Monster.CreateTestarrayofshortsVector(fbb, new short[] {1, 2, 3});
+            var testArrayOfDoubles = Monster.CreateTestarrayofdoublesVector(fbb, new[] { 1.0, 2.0, 3.0 });
+            var testArrayOfFloats = Monster.CreateTestarrayoffloatsVector(fbb, new [] {1.0F, 2.0F, 3.0F});
+
             Monster.StartMonster(fbb);
             Monster.AddPos(fbb, Vec3.CreateVec3(fbb, 1.0f, 2.0f, 3.0f, 3.0,
                                                      Color.Green, (short)5, (sbyte)6));
@@ -79,6 +87,15 @@ namespace FlatBuffers.Test
             Monster.AddTest4(fbb, test4);
             Monster.AddTestarrayofstring(fbb, testArrayOfString);
             Monster.AddTestbool(fbb, false);
+
+            Monster.AddTestarrayofbytes(fbb, testArrayOfBytes);
+            Monster.AddTestarrayofbools1(fbb, testArrayOfBools1);
+            Monster.AddTestarrayofshorts(fbb, testArrayOfShorts);
+            Monster.AddTestarrayofints(fbb, testArrayOfInts);
+            Monster.AddTestarrayoffloats(fbb, testArrayOfFloats);
+            Monster.AddTestarrayoflongs(fbb, testArrayOfLongs);
+            Monster.AddTestarrayofdoubles(fbb, testArrayOfDoubles);
+          
             var mon = Monster.EndMonster(fbb);
 
             Monster.FinishMonsterBuffer(fbb, mon);
@@ -254,5 +271,93 @@ namespace FlatBuffers.Test
             Assert.AreEqual(nestedMonsterHp, nestedMonster.Hp);
             Assert.AreEqual(nestedMonsterName, nestedMonster.Name);
         }
+
+      [FlatBuffersTestMethod]
+      public void TestFlatBufferCreateVector() {
+          // Second, let's create a FlatBuffer from scratch in C#, and test it also.
+          // We use an initial size of 1 to exercise the reallocation algorithm,
+          // normally a size larger than the typical FlatBuffer you generate would be
+          // better for performance.
+          var fbb = new FlatBufferBuilder(1);
+
+          // We set up the same values as monsterdata.json:
+
+          var str = fbb.CreateString("MyMonster");
+          var test1 = fbb.CreateString("test1");
+          var test2 = fbb.CreateString("test2");
+
+
+          Monster.StartInventoryVector(fbb, 5);
+          for (int i = 4; i >= 0; i--) {
+            fbb.AddByte((byte)i);
+          }
+          var inv = fbb.EndVector();
+
+          var fred = fbb.CreateString("Fred");
+          Monster.StartMonster(fbb);
+          Monster.AddName(fbb, fred);
+          var mon2 = Monster.EndMonster(fbb);
+
+          Monster.StartTest4Vector(fbb, 2);
+          MyGame.Example.Test.CreateTest(fbb, (short)10, (sbyte)20);
+          MyGame.Example.Test.CreateTest(fbb, (short)30, (sbyte)40);
+          var test4 = fbb.EndVector();
+
+          Monster.StartTestarrayofstringVector(fbb, 2);
+          fbb.AddOffset(test2.Value);
+          fbb.AddOffset(test1.Value);
+          var testArrayOfString = fbb.EndVector();
+
+          var testArrayOfBytes = Monster.CreateTestarrayofbytesVector(fbb, new byte[] { 0x1, 0x2, 0x3 });
+          var testArrayOfLongs = Monster.CreateTestarrayoflongsVector(fbb, new long[] { 1, 2, 3 });
+          var testArrayOfBools1 = Monster.CreateTestarrayofbools1Vector(fbb, new[] { true, false, false });
+          var testArrayOfInts = Monster.CreateTestarrayofintsVector(fbb, new[] { 1, 2, 3 });
+          var testArrayOfShorts = Monster.CreateTestarrayofshortsVector(fbb, new short[] { 1, 2, 3 });
+          var testArrayOfDoubles = Monster.CreateTestarrayofdoublesVector(fbb, new[] { 1.0, 2.0, 3.0 });
+          var testArrayOfFloats = Monster.CreateTestarrayoffloatsVector(fbb, new[] { 1.0F, 2.0F, 3.0F });
+
+          Monster.StartMonster(fbb);
+          Monster.AddPos(fbb, Vec3.CreateVec3(fbb, 1.0f, 2.0f, 3.0f, 3.0,
+                                                   Color.Green, (short)5, (sbyte)6));
+          Monster.AddHp(fbb, (short)80);
+          Monster.AddName(fbb, str);
+          Monster.AddInventory(fbb, inv);
+          Monster.AddTestType(fbb, Any.Monster);
+          Monster.AddTest(fbb, mon2.Value);
+          Monster.AddTest4(fbb, test4);
+          Monster.AddTestarrayofstring(fbb, testArrayOfString);
+          Monster.AddTestbool(fbb, false);
+
+          Monster.AddTestarrayofbytes(fbb, testArrayOfBytes);
+          Monster.AddTestarrayofbools1(fbb, testArrayOfBools1);
+          Monster.AddTestarrayofshorts(fbb, testArrayOfShorts);
+          Monster.AddTestarrayofints(fbb, testArrayOfInts);
+          Monster.AddTestarrayoffloats(fbb, testArrayOfFloats);
+          Monster.AddTestarrayoflongs(fbb, testArrayOfLongs);
+          Monster.AddTestarrayofdoubles(fbb, testArrayOfDoubles);
+
+          var mon = Monster.EndMonster(fbb);
+
+          Monster.FinishMonsterBuffer(fbb, mon);
+
+          var monster = Monster.GetRootAsMonster(fbb.DataBuffer);
+
+          Assert.AreEqual(monster.TestarrayofbytesLength, 3);
+          Assert.AreEqual(monster.TestarrayoflongsLength, 3);
+          Assert.AreEqual(monster.Testarrayofbools1Length, 3);
+          Assert.AreEqual(monster.TestarrayofintsLength, 3);
+          Assert.AreEqual(monster.TestarrayofshortsLength, 3);
+          Assert.AreEqual(monster.TestarrayofdoublesLength, 3);
+          Assert.AreEqual(monster.TestarrayoffloatsLength, 3);
+          for (int i = 0; i < 3; i++) {
+            Assert.AreEqual(monster.GetTestarrayofbytes(i), i + 1);
+            Assert.AreEqual(monster.GetTestarrayofshorts(i), i + 1);
+            Assert.AreEqual(monster.GetTestarrayofints(i), i + 1);
+            Assert.AreEqual(monster.GetTestarrayoflongs(i), i + 1);
+            Assert.AreEqual(monster.GetTestarrayofbools1(i), i == 0);
+            Assert.AreEqual(monster.GetTestarrayoffloats(i), i + 1);
+            Assert.AreEqual(monster.GetTestarrayofdoubles(i), i + 1);
+          }
+      }
     }
 }

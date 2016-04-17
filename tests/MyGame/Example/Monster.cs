@@ -74,14 +74,42 @@ public sealed class Monster : Table {
   public bool MutateTestarrayofbools(int j, bool testarrayofbools) { int o = __offset(52); if (o != 0) { bb.Put(__vector(o) + j * 1, (byte)(testarrayofbools ? 1 : 0)); return true; } else { return false; } }
   public float Testf { get { int o = __offset(54); return o != 0 ? bb.GetFloat(o + bb_pos) : (float)3.14159f; } }
   public bool MutateTestf(float testf) { int o = __offset(54); if (o != 0) { bb.PutFloat(o + bb_pos, testf); return true; } else { return false; } }
+  public byte GetTestarrayofbytes(int j) { int o = __offset(56); return o != 0 ? bb.Get(__vector(o) + j * 1) : (byte)0; }
+  public int TestarrayofbytesLength { get { int o = __offset(56); return o != 0 ? __vector_len(o) : 0; } }
+  public ArraySegment<byte>? GetTestarrayofbytesBytes() { return __vector_as_arraysegment(56); }
+  public bool MutateTestarrayofbytes(int j, byte testarrayofbytes) { int o = __offset(56); if (o != 0) { bb.Put(__vector(o) + j * 1, testarrayofbytes); return true; } else { return false; } }
+  public bool GetTestarrayofbools1(int j) { int o = __offset(58); return o != 0 ? 0!=bb.Get(__vector(o) + j * 1) : false; }
+  public int Testarrayofbools1Length { get { int o = __offset(58); return o != 0 ? __vector_len(o) : 0; } }
+  public ArraySegment<byte>? GetTestarrayofbools1Bytes() { return __vector_as_arraysegment(58); }
+  public bool MutateTestarrayofbools1(int j, bool testarrayofbools1) { int o = __offset(58); if (o != 0) { bb.Put(__vector(o) + j * 1, (byte)(testarrayofbools1 ? 1 : 0)); return true; } else { return false; } }
+  public short GetTestarrayofshorts(int j) { int o = __offset(60); return o != 0 ? bb.GetShort(__vector(o) + j * 2) : (short)0; }
+  public int TestarrayofshortsLength { get { int o = __offset(60); return o != 0 ? __vector_len(o) : 0; } }
+  public ArraySegment<byte>? GetTestarrayofshortsBytes() { return __vector_as_arraysegment(60); }
+  public bool MutateTestarrayofshorts(int j, short testarrayofshorts) { int o = __offset(60); if (o != 0) { bb.PutShort(__vector(o) + j * 2, testarrayofshorts); return true; } else { return false; } }
+  public int GetTestarrayofints(int j) { int o = __offset(62); return o != 0 ? bb.GetInt(__vector(o) + j * 4) : (int)0; }
+  public int TestarrayofintsLength { get { int o = __offset(62); return o != 0 ? __vector_len(o) : 0; } }
+  public ArraySegment<byte>? GetTestarrayofintsBytes() { return __vector_as_arraysegment(62); }
+  public bool MutateTestarrayofints(int j, int testarrayofints) { int o = __offset(62); if (o != 0) { bb.PutInt(__vector(o) + j * 4, testarrayofints); return true; } else { return false; } }
+  public long GetTestarrayoflongs(int j) { int o = __offset(64); return o != 0 ? bb.GetLong(__vector(o) + j * 8) : (long)0; }
+  public int TestarrayoflongsLength { get { int o = __offset(64); return o != 0 ? __vector_len(o) : 0; } }
+  public ArraySegment<byte>? GetTestarrayoflongsBytes() { return __vector_as_arraysegment(64); }
+  public bool MutateTestarrayoflongs(int j, long testarrayoflongs) { int o = __offset(64); if (o != 0) { bb.PutLong(__vector(o) + j * 8, testarrayoflongs); return true; } else { return false; } }
+  public float GetTestarrayoffloats(int j) { int o = __offset(66); return o != 0 ? bb.GetFloat(__vector(o) + j * 4) : (float)0; }
+  public int TestarrayoffloatsLength { get { int o = __offset(66); return o != 0 ? __vector_len(o) : 0; } }
+  public ArraySegment<byte>? GetTestarrayoffloatsBytes() { return __vector_as_arraysegment(66); }
+  public bool MutateTestarrayoffloats(int j, float testarrayoffloats) { int o = __offset(66); if (o != 0) { bb.PutFloat(__vector(o) + j * 4, testarrayoffloats); return true; } else { return false; } }
+  public double GetTestarrayofdoubles(int j) { int o = __offset(68); return o != 0 ? bb.GetDouble(__vector(o) + j * 8) : (double)0; }
+  public int TestarrayofdoublesLength { get { int o = __offset(68); return o != 0 ? __vector_len(o) : 0; } }
+  public ArraySegment<byte>? GetTestarrayofdoublesBytes() { return __vector_as_arraysegment(68); }
+  public bool MutateTestarrayofdoubles(int j, double testarrayofdoubles) { int o = __offset(68); if (o != 0) { bb.PutDouble(__vector(o) + j * 8, testarrayofdoubles); return true; } else { return false; } }
 
-  public static void StartMonster(FlatBufferBuilder builder) { builder.StartObject(26); }
+  public static void StartMonster(FlatBufferBuilder builder) { builder.StartObject(33); }
   public static void AddPos(FlatBufferBuilder builder, Offset<Vec3> posOffset) { builder.AddStruct(0, posOffset.Value, 0); }
   public static void AddMana(FlatBufferBuilder builder, short mana) { builder.AddShort(1, mana, 150); }
   public static void AddHp(FlatBufferBuilder builder, short hp) { builder.AddShort(2, hp, 100); }
   public static void AddName(FlatBufferBuilder builder, StringOffset nameOffset) { builder.AddOffset(3, nameOffset.Value, 0); }
   public static void AddInventory(FlatBufferBuilder builder, VectorOffset inventoryOffset) { builder.AddOffset(5, inventoryOffset.Value, 0); }
-  public static VectorOffset CreateInventoryVector(FlatBufferBuilder builder, byte[] data) { builder.StartVector(1, data.Length, 1); for (int i = data.Length - 1; i >= 0; i--) builder.AddByte(data[i]); return builder.EndVector(); }
+  public static VectorOffset CreateInventoryVector(FlatBufferBuilder builder, byte[] data) { return builder.CreateByteVector(data, 0, data.Length); }
   public static void StartInventoryVector(FlatBufferBuilder builder, int numElems) { builder.StartVector(1, numElems, 1); }
   public static void AddColor(FlatBufferBuilder builder, Color color) { builder.AddSbyte(6, (sbyte)color, 8); }
   public static void AddTestType(FlatBufferBuilder builder, Any testType) { builder.AddByte(7, (byte)testType, 0); }
@@ -96,7 +124,7 @@ public sealed class Monster : Table {
   public static void StartTestarrayoftablesVector(FlatBufferBuilder builder, int numElems) { builder.StartVector(4, numElems, 4); }
   public static void AddEnemy(FlatBufferBuilder builder, Offset<Monster> enemyOffset) { builder.AddOffset(12, enemyOffset.Value, 0); }
   public static void AddTestnestedflatbuffer(FlatBufferBuilder builder, VectorOffset testnestedflatbufferOffset) { builder.AddOffset(13, testnestedflatbufferOffset.Value, 0); }
-  public static VectorOffset CreateTestnestedflatbufferVector(FlatBufferBuilder builder, byte[] data) { builder.StartVector(1, data.Length, 1); for (int i = data.Length - 1; i >= 0; i--) builder.AddByte(data[i]); return builder.EndVector(); }
+  public static VectorOffset CreateTestnestedflatbufferVector(FlatBufferBuilder builder, byte[] data) { return builder.CreateByteVector(data, 0, data.Length); }
   public static void StartTestnestedflatbufferVector(FlatBufferBuilder builder, int numElems) { builder.StartVector(1, numElems, 1); }
   public static void AddTestempty(FlatBufferBuilder builder, Offset<Stat> testemptyOffset) { builder.AddOffset(14, testemptyOffset.Value, 0); }
   public static void AddTestbool(FlatBufferBuilder builder, bool testbool) { builder.AddBool(15, testbool, false); }
@@ -109,9 +137,30 @@ public sealed class Monster : Table {
   public static void AddTesthashs64Fnv1a(FlatBufferBuilder builder, long testhashs64Fnv1a) { builder.AddLong(22, testhashs64Fnv1a, 0); }
   public static void AddTesthashu64Fnv1a(FlatBufferBuilder builder, ulong testhashu64Fnv1a) { builder.AddUlong(23, testhashu64Fnv1a, 0); }
   public static void AddTestarrayofbools(FlatBufferBuilder builder, VectorOffset testarrayofboolsOffset) { builder.AddOffset(24, testarrayofboolsOffset.Value, 0); }
-  public static VectorOffset CreateTestarrayofboolsVector(FlatBufferBuilder builder, bool[] data) { builder.StartVector(1, data.Length, 1); for (int i = data.Length - 1; i >= 0; i--) builder.AddBool(data[i]); return builder.EndVector(); }
+  public static VectorOffset CreateTestarrayofboolsVector(FlatBufferBuilder builder, bool[] data) { return builder.CreateBoolVector(data, 0, data.Length); }
   public static void StartTestarrayofboolsVector(FlatBufferBuilder builder, int numElems) { builder.StartVector(1, numElems, 1); }
   public static void AddTestf(FlatBufferBuilder builder, float testf) { builder.AddFloat(25, testf, 3.14159f); }
+  public static void AddTestarrayofbytes(FlatBufferBuilder builder, VectorOffset testarrayofbytesOffset) { builder.AddOffset(26, testarrayofbytesOffset.Value, 0); }
+  public static VectorOffset CreateTestarrayofbytesVector(FlatBufferBuilder builder, byte[] data) { return builder.CreateByteVector(data, 0, data.Length); }
+  public static void StartTestarrayofbytesVector(FlatBufferBuilder builder, int numElems) { builder.StartVector(1, numElems, 1); }
+  public static void AddTestarrayofbools1(FlatBufferBuilder builder, VectorOffset testarrayofbools1Offset) { builder.AddOffset(27, testarrayofbools1Offset.Value, 0); }
+  public static VectorOffset CreateTestarrayofbools1Vector(FlatBufferBuilder builder, bool[] data) { return builder.CreateBoolVector(data, 0, data.Length); }
+  public static void StartTestarrayofbools1Vector(FlatBufferBuilder builder, int numElems) { builder.StartVector(1, numElems, 1); }
+  public static void AddTestarrayofshorts(FlatBufferBuilder builder, VectorOffset testarrayofshortsOffset) { builder.AddOffset(28, testarrayofshortsOffset.Value, 0); }
+  public static VectorOffset CreateTestarrayofshortsVector(FlatBufferBuilder builder, short[] data) { return builder.CreateShortVector(data, 0, data.Length); }
+  public static void StartTestarrayofshortsVector(FlatBufferBuilder builder, int numElems) { builder.StartVector(2, numElems, 2); }
+  public static void AddTestarrayofints(FlatBufferBuilder builder, VectorOffset testarrayofintsOffset) { builder.AddOffset(29, testarrayofintsOffset.Value, 0); }
+  public static VectorOffset CreateTestarrayofintsVector(FlatBufferBuilder builder, int[] data) { return builder.CreateIntVector(data, 0, data.Length); }
+  public static void StartTestarrayofintsVector(FlatBufferBuilder builder, int numElems) { builder.StartVector(4, numElems, 4); }
+  public static void AddTestarrayoflongs(FlatBufferBuilder builder, VectorOffset testarrayoflongsOffset) { builder.AddOffset(30, testarrayoflongsOffset.Value, 0); }
+  public static VectorOffset CreateTestarrayoflongsVector(FlatBufferBuilder builder, long[] data) { return builder.CreateLongVector(data, 0, data.Length); }
+  public static void StartTestarrayoflongsVector(FlatBufferBuilder builder, int numElems) { builder.StartVector(8, numElems, 8); }
+  public static void AddTestarrayoffloats(FlatBufferBuilder builder, VectorOffset testarrayoffloatsOffset) { builder.AddOffset(31, testarrayoffloatsOffset.Value, 0); }
+  public static VectorOffset CreateTestarrayoffloatsVector(FlatBufferBuilder builder, float[] data) { return builder.CreateFloatVector(data, 0, data.Length); }
+  public static void StartTestarrayoffloatsVector(FlatBufferBuilder builder, int numElems) { builder.StartVector(4, numElems, 4); }
+  public static void AddTestarrayofdoubles(FlatBufferBuilder builder, VectorOffset testarrayofdoublesOffset) { builder.AddOffset(32, testarrayofdoublesOffset.Value, 0); }
+  public static VectorOffset CreateTestarrayofdoublesVector(FlatBufferBuilder builder, double[] data) { return builder.CreateDoubleVector(data, 0, data.Length); }
+  public static void StartTestarrayofdoublesVector(FlatBufferBuilder builder, int numElems) { builder.StartVector(8, numElems, 8); }
   public static Offset<Monster> EndMonster(FlatBufferBuilder builder, bool enableVtableReuse = true) {
     int o = builder.EndObject(enableVtableReuse);
     builder.Required(o, 10);  // name

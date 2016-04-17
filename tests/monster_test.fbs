@@ -12,6 +12,8 @@ union Any { Monster, TestSimpleTableWithEnum }  // TODO: add more elements
 
 struct Test { a:short; b:byte; }
 
+struct Test2 { b:byte; }
+
 table TestSimpleTableWithEnum (csharp_partial) {
   color: Color = Green;
 }
@@ -59,7 +61,16 @@ table Monster {
   testhashu32_fnv1a:uint (id:21, hash:"fnv1a_32");
   testhashs64_fnv1a:long (id:22, hash:"fnv1a_64");
   testhashu64_fnv1a:ulong (id:23, hash:"fnv1a_64");
+
   testf:float = 3.14159 (id:25);
+  
+  testarrayofbytes:[ubyte] (id:26);
+  testarrayofbools1:[bool] (id:27);
+  testarrayofshorts:[short] (id:28);
+  testarrayofints:[int] (id:29);
+  testarrayoflongs:[long] (id:30);
+  testarrayoffloats:[float] (id:31);
+  testarrayofdoubles:[double] (id:32);
 }
 
 rpc_service MonsterStorage {
