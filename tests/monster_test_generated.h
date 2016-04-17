@@ -15,6 +15,7 @@ namespace MyGame {
 namespace Example {
 
 struct Test;
+struct Test2;
 struct TestSimpleTableWithEnum;
 struct Vec3;
 struct Stat;
@@ -68,6 +69,19 @@ MANUALLY_ALIGNED_STRUCT(2) Test FLATBUFFERS_FINAL_CLASS {
   void mutate_b(int8_t _b) { flatbuffers::WriteScalar(&b_, _b); }
 };
 STRUCT_END(Test, 4);
+
+MANUALLY_ALIGNED_STRUCT(1) Test2 FLATBUFFERS_FINAL_CLASS {
+ private:
+  int8_t b_;
+
+ public:
+  Test2(int8_t _b)
+    : b_(flatbuffers::EndianScalar(_b)) { }
+
+  int8_t b() const { return flatbuffers::EndianScalar(b_); }
+  void mutate_b(int8_t _b) { flatbuffers::WriteScalar(&b_, _b); }
+};
+STRUCT_END(Test2, 1);
 
 MANUALLY_ALIGNED_STRUCT(16) Vec3 FLATBUFFERS_FINAL_CLASS {
  private:
@@ -205,7 +219,22 @@ struct Monster FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
     VT_TESTHASHU32_FNV1A = 46,
     VT_TESTHASHS64_FNV1A = 48,
     VT_TESTHASHU64_FNV1A = 50,
-    VT_TESTARRAYOFBOOLS = 52
+    VT_TESTARRAYOFBOOLS = 52,
+    VT_TESTARRAYOFBYTES = 54,
+    VT_TESTBYTE2 = 56,
+    VT_TESTARRAYOFBOOLS1 = 58,
+    VT_TESTBYTE3 = 60,
+    VT_TESTARRAYOFSHORTS = 62,
+    VT_TESTBYTE4 = 64,
+    VT_TESTARRAYOFINTS = 66,
+    VT_TESTBYTE5 = 68,
+    VT_TESTARRAYOFLONGS = 70,
+    VT_TESTBYTE6 = 72,
+    VT_TESTARRAYOFFLOATS = 74,
+    VT_TESTBYTE7 = 76,
+    VT_TESTARRAYOFDOUBLES = 78,
+    VT_TESTBYTE8 = 80,
+    VT_TESTBYTE1 = 82
   };
   const Vec3 *pos() const { return GetStruct<const Vec3 *>(VT_POS); }
   Vec3 *mutable_pos() { return GetStruct<Vec3 *>(VT_POS); }
@@ -260,6 +289,36 @@ struct Monster FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
   bool mutate_testhashu64_fnv1a(uint64_t _testhashu64_fnv1a) { return SetField(VT_TESTHASHU64_FNV1A, _testhashu64_fnv1a); }
   const flatbuffers::Vector<uint8_t> *testarrayofbools() const { return GetPointer<const flatbuffers::Vector<uint8_t> *>(VT_TESTARRAYOFBOOLS); }
   flatbuffers::Vector<uint8_t> *mutable_testarrayofbools() { return GetPointer<flatbuffers::Vector<uint8_t> *>(VT_TESTARRAYOFBOOLS); }
+  const flatbuffers::Vector<uint8_t> *testarrayofbytes() const { return GetPointer<const flatbuffers::Vector<uint8_t> *>(VT_TESTARRAYOFBYTES); }
+  flatbuffers::Vector<uint8_t> *mutable_testarrayofbytes() { return GetPointer<flatbuffers::Vector<uint8_t> *>(VT_TESTARRAYOFBYTES); }
+  uint8_t testbyte2() const { return GetField<uint8_t>(VT_TESTBYTE2, 0); }
+  bool mutate_testbyte2(uint8_t _testbyte2) { return SetField(VT_TESTBYTE2, _testbyte2); }
+  const flatbuffers::Vector<uint8_t> *testarrayofbools1() const { return GetPointer<const flatbuffers::Vector<uint8_t> *>(VT_TESTARRAYOFBOOLS1); }
+  flatbuffers::Vector<uint8_t> *mutable_testarrayofbools1() { return GetPointer<flatbuffers::Vector<uint8_t> *>(VT_TESTARRAYOFBOOLS1); }
+  uint8_t testbyte3() const { return GetField<uint8_t>(VT_TESTBYTE3, 0); }
+  bool mutate_testbyte3(uint8_t _testbyte3) { return SetField(VT_TESTBYTE3, _testbyte3); }
+  const flatbuffers::Vector<int16_t> *testarrayofshorts() const { return GetPointer<const flatbuffers::Vector<int16_t> *>(VT_TESTARRAYOFSHORTS); }
+  flatbuffers::Vector<int16_t> *mutable_testarrayofshorts() { return GetPointer<flatbuffers::Vector<int16_t> *>(VT_TESTARRAYOFSHORTS); }
+  uint8_t testbyte4() const { return GetField<uint8_t>(VT_TESTBYTE4, 0); }
+  bool mutate_testbyte4(uint8_t _testbyte4) { return SetField(VT_TESTBYTE4, _testbyte4); }
+  const flatbuffers::Vector<int32_t> *testarrayofints() const { return GetPointer<const flatbuffers::Vector<int32_t> *>(VT_TESTARRAYOFINTS); }
+  flatbuffers::Vector<int32_t> *mutable_testarrayofints() { return GetPointer<flatbuffers::Vector<int32_t> *>(VT_TESTARRAYOFINTS); }
+  uint8_t testbyte5() const { return GetField<uint8_t>(VT_TESTBYTE5, 0); }
+  bool mutate_testbyte5(uint8_t _testbyte5) { return SetField(VT_TESTBYTE5, _testbyte5); }
+  const flatbuffers::Vector<int64_t> *testarrayoflongs() const { return GetPointer<const flatbuffers::Vector<int64_t> *>(VT_TESTARRAYOFLONGS); }
+  flatbuffers::Vector<int64_t> *mutable_testarrayoflongs() { return GetPointer<flatbuffers::Vector<int64_t> *>(VT_TESTARRAYOFLONGS); }
+  uint8_t testbyte6() const { return GetField<uint8_t>(VT_TESTBYTE6, 0); }
+  bool mutate_testbyte6(uint8_t _testbyte6) { return SetField(VT_TESTBYTE6, _testbyte6); }
+  const flatbuffers::Vector<float> *testarrayoffloats() const { return GetPointer<const flatbuffers::Vector<float> *>(VT_TESTARRAYOFFLOATS); }
+  flatbuffers::Vector<float> *mutable_testarrayoffloats() { return GetPointer<flatbuffers::Vector<float> *>(VT_TESTARRAYOFFLOATS); }
+  uint8_t testbyte7() const { return GetField<uint8_t>(VT_TESTBYTE7, 0); }
+  bool mutate_testbyte7(uint8_t _testbyte7) { return SetField(VT_TESTBYTE7, _testbyte7); }
+  const flatbuffers::Vector<double> *testarrayofdoubles() const { return GetPointer<const flatbuffers::Vector<double> *>(VT_TESTARRAYOFDOUBLES); }
+  flatbuffers::Vector<double> *mutable_testarrayofdoubles() { return GetPointer<flatbuffers::Vector<double> *>(VT_TESTARRAYOFDOUBLES); }
+  uint8_t testbyte8() const { return GetField<uint8_t>(VT_TESTBYTE8, 0); }
+  bool mutate_testbyte8(uint8_t _testbyte8) { return SetField(VT_TESTBYTE8, _testbyte8); }
+  uint8_t testbyte1() const { return GetField<uint8_t>(VT_TESTBYTE1, 0); }
+  bool mutate_testbyte1(uint8_t _testbyte1) { return SetField(VT_TESTBYTE1, _testbyte1); }
   bool Verify(flatbuffers::Verifier &verifier) const {
     return VerifyTableStart(verifier) &&
            VerifyField<Vec3>(verifier, VT_POS) &&
@@ -298,6 +357,28 @@ struct Monster FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
            VerifyField<uint64_t>(verifier, VT_TESTHASHU64_FNV1A) &&
            VerifyField<flatbuffers::uoffset_t>(verifier, VT_TESTARRAYOFBOOLS) &&
            verifier.Verify(testarrayofbools()) &&
+           VerifyField<flatbuffers::uoffset_t>(verifier, VT_TESTARRAYOFBYTES) &&
+           verifier.Verify(testarrayofbytes()) &&
+           VerifyField<uint8_t>(verifier, VT_TESTBYTE2) &&
+           VerifyField<flatbuffers::uoffset_t>(verifier, VT_TESTARRAYOFBOOLS1) &&
+           verifier.Verify(testarrayofbools1()) &&
+           VerifyField<uint8_t>(verifier, VT_TESTBYTE3) &&
+           VerifyField<flatbuffers::uoffset_t>(verifier, VT_TESTARRAYOFSHORTS) &&
+           verifier.Verify(testarrayofshorts()) &&
+           VerifyField<uint8_t>(verifier, VT_TESTBYTE4) &&
+           VerifyField<flatbuffers::uoffset_t>(verifier, VT_TESTARRAYOFINTS) &&
+           verifier.Verify(testarrayofints()) &&
+           VerifyField<uint8_t>(verifier, VT_TESTBYTE5) &&
+           VerifyField<flatbuffers::uoffset_t>(verifier, VT_TESTARRAYOFLONGS) &&
+           verifier.Verify(testarrayoflongs()) &&
+           VerifyField<uint8_t>(verifier, VT_TESTBYTE6) &&
+           VerifyField<flatbuffers::uoffset_t>(verifier, VT_TESTARRAYOFFLOATS) &&
+           verifier.Verify(testarrayoffloats()) &&
+           VerifyField<uint8_t>(verifier, VT_TESTBYTE7) &&
+           VerifyField<flatbuffers::uoffset_t>(verifier, VT_TESTARRAYOFDOUBLES) &&
+           verifier.Verify(testarrayofdoubles()) &&
+           VerifyField<uint8_t>(verifier, VT_TESTBYTE8) &&
+           VerifyField<uint8_t>(verifier, VT_TESTBYTE1) &&
            verifier.EndTable();
   }
 };
@@ -329,10 +410,25 @@ struct MonsterBuilder {
   void add_testhashs64_fnv1a(int64_t testhashs64_fnv1a) { fbb_.AddElement<int64_t>(Monster::VT_TESTHASHS64_FNV1A, testhashs64_fnv1a, 0); }
   void add_testhashu64_fnv1a(uint64_t testhashu64_fnv1a) { fbb_.AddElement<uint64_t>(Monster::VT_TESTHASHU64_FNV1A, testhashu64_fnv1a, 0); }
   void add_testarrayofbools(flatbuffers::Offset<flatbuffers::Vector<uint8_t>> testarrayofbools) { fbb_.AddOffset(Monster::VT_TESTARRAYOFBOOLS, testarrayofbools); }
+  void add_testarrayofbytes(flatbuffers::Offset<flatbuffers::Vector<uint8_t>> testarrayofbytes) { fbb_.AddOffset(Monster::VT_TESTARRAYOFBYTES, testarrayofbytes); }
+  void add_testbyte2(uint8_t testbyte2) { fbb_.AddElement<uint8_t>(Monster::VT_TESTBYTE2, testbyte2, 0); }
+  void add_testarrayofbools1(flatbuffers::Offset<flatbuffers::Vector<uint8_t>> testarrayofbools1) { fbb_.AddOffset(Monster::VT_TESTARRAYOFBOOLS1, testarrayofbools1); }
+  void add_testbyte3(uint8_t testbyte3) { fbb_.AddElement<uint8_t>(Monster::VT_TESTBYTE3, testbyte3, 0); }
+  void add_testarrayofshorts(flatbuffers::Offset<flatbuffers::Vector<int16_t>> testarrayofshorts) { fbb_.AddOffset(Monster::VT_TESTARRAYOFSHORTS, testarrayofshorts); }
+  void add_testbyte4(uint8_t testbyte4) { fbb_.AddElement<uint8_t>(Monster::VT_TESTBYTE4, testbyte4, 0); }
+  void add_testarrayofints(flatbuffers::Offset<flatbuffers::Vector<int32_t>> testarrayofints) { fbb_.AddOffset(Monster::VT_TESTARRAYOFINTS, testarrayofints); }
+  void add_testbyte5(uint8_t testbyte5) { fbb_.AddElement<uint8_t>(Monster::VT_TESTBYTE5, testbyte5, 0); }
+  void add_testarrayoflongs(flatbuffers::Offset<flatbuffers::Vector<int64_t>> testarrayoflongs) { fbb_.AddOffset(Monster::VT_TESTARRAYOFLONGS, testarrayoflongs); }
+  void add_testbyte6(uint8_t testbyte6) { fbb_.AddElement<uint8_t>(Monster::VT_TESTBYTE6, testbyte6, 0); }
+  void add_testarrayoffloats(flatbuffers::Offset<flatbuffers::Vector<float>> testarrayoffloats) { fbb_.AddOffset(Monster::VT_TESTARRAYOFFLOATS, testarrayoffloats); }
+  void add_testbyte7(uint8_t testbyte7) { fbb_.AddElement<uint8_t>(Monster::VT_TESTBYTE7, testbyte7, 0); }
+  void add_testarrayofdoubles(flatbuffers::Offset<flatbuffers::Vector<double>> testarrayofdoubles) { fbb_.AddOffset(Monster::VT_TESTARRAYOFDOUBLES, testarrayofdoubles); }
+  void add_testbyte8(uint8_t testbyte8) { fbb_.AddElement<uint8_t>(Monster::VT_TESTBYTE8, testbyte8, 0); }
+  void add_testbyte1(uint8_t testbyte1) { fbb_.AddElement<uint8_t>(Monster::VT_TESTBYTE1, testbyte1, 0); }
   MonsterBuilder(flatbuffers::FlatBufferBuilder &_fbb) : fbb_(_fbb) { start_ = fbb_.StartTable(); }
   MonsterBuilder &operator=(const MonsterBuilder &);
   flatbuffers::Offset<Monster> Finish() {
-    auto o = flatbuffers::Offset<Monster>(fbb_.EndTable(start_, 25));
+    auto o = flatbuffers::Offset<Monster>(fbb_.EndTable(start_, 40));
     fbb_.Required(o, Monster::VT_NAME);  // name
     return o;
   }
@@ -362,12 +458,34 @@ inline flatbuffers::Offset<Monster> CreateMonster(flatbuffers::FlatBufferBuilder
    uint32_t testhashu32_fnv1a = 0,
    int64_t testhashs64_fnv1a = 0,
    uint64_t testhashu64_fnv1a = 0,
-   flatbuffers::Offset<flatbuffers::Vector<uint8_t>> testarrayofbools = 0) {
+   flatbuffers::Offset<flatbuffers::Vector<uint8_t>> testarrayofbools = 0,
+   flatbuffers::Offset<flatbuffers::Vector<uint8_t>> testarrayofbytes = 0,
+   uint8_t testbyte2 = 0,
+   flatbuffers::Offset<flatbuffers::Vector<uint8_t>> testarrayofbools1 = 0,
+   uint8_t testbyte3 = 0,
+   flatbuffers::Offset<flatbuffers::Vector<int16_t>> testarrayofshorts = 0,
+   uint8_t testbyte4 = 0,
+   flatbuffers::Offset<flatbuffers::Vector<int32_t>> testarrayofints = 0,
+   uint8_t testbyte5 = 0,
+   flatbuffers::Offset<flatbuffers::Vector<int64_t>> testarrayoflongs = 0,
+   uint8_t testbyte6 = 0,
+   flatbuffers::Offset<flatbuffers::Vector<float>> testarrayoffloats = 0,
+   uint8_t testbyte7 = 0,
+   flatbuffers::Offset<flatbuffers::Vector<double>> testarrayofdoubles = 0,
+   uint8_t testbyte8 = 0,
+   uint8_t testbyte1 = 0) {
   MonsterBuilder builder_(_fbb);
   builder_.add_testhashu64_fnv1a(testhashu64_fnv1a);
   builder_.add_testhashs64_fnv1a(testhashs64_fnv1a);
   builder_.add_testhashu64_fnv1(testhashu64_fnv1);
   builder_.add_testhashs64_fnv1(testhashs64_fnv1);
+  builder_.add_testarrayofdoubles(testarrayofdoubles);
+  builder_.add_testarrayoffloats(testarrayoffloats);
+  builder_.add_testarrayoflongs(testarrayoflongs);
+  builder_.add_testarrayofints(testarrayofints);
+  builder_.add_testarrayofshorts(testarrayofshorts);
+  builder_.add_testarrayofbools1(testarrayofbools1);
+  builder_.add_testarrayofbytes(testarrayofbytes);
   builder_.add_testarrayofbools(testarrayofbools);
   builder_.add_testhashu32_fnv1a(testhashu32_fnv1a);
   builder_.add_testhashs32_fnv1a(testhashs32_fnv1a);
@@ -385,6 +503,14 @@ inline flatbuffers::Offset<Monster> CreateMonster(flatbuffers::FlatBufferBuilder
   builder_.add_pos(pos);
   builder_.add_hp(hp);
   builder_.add_mana(mana);
+  builder_.add_testbyte1(testbyte1);
+  builder_.add_testbyte8(testbyte8);
+  builder_.add_testbyte7(testbyte7);
+  builder_.add_testbyte6(testbyte6);
+  builder_.add_testbyte5(testbyte5);
+  builder_.add_testbyte4(testbyte4);
+  builder_.add_testbyte3(testbyte3);
+  builder_.add_testbyte2(testbyte2);
   builder_.add_testbool(testbool);
   builder_.add_test_type(test_type);
   builder_.add_color(color);
