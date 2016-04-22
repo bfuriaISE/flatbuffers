@@ -890,23 +890,35 @@ static void GenStruct(const LanguageParameters &lang, const Parser &parser,
     // generate object accessors if is nested_flatbuffer
     auto nested = field.attributes.Lookup("nested_flatbuffer");
     if (nested) {
-      auto nested_qualified_name =
-        parser.namespaces_.back()->GetFullyQualifiedName(nested->constant);
+      auto nested_qualified_name = nested->constant;
+      // first attempt lookup using attribute value
       auto nested_type = parser.structs_.Lookup(nested_qualified_name);
-      auto nested_type_name = WrapInNameSpace(parser, *nested_type);
-      auto nestedMethodName = MakeCamel(field.name, lang.first_camel_upper)
-        + "As" + nested_type_name;
-      auto getNestedMethodName = nestedMethodName;
-      if (lang.language == IDLOptions::kCSharp) {
-        getNestedMethodName = "Get" + nestedMethodName;
+      // if not found, try qualifying the name using known namespaces
+      if (nested_type == nullptr) {
+        for (auto namespaceItr = parser.namespaces_.rbegin(); 
+             namespaceItr != parser.namespaces_.rend() && nested_type == nullptr; 
+             ++namespaceItr) {
+          nested_qualified_name = (*namespaceItr)->GetFullyQualifiedName(nested->constant);
+          nested_type = parser.structs_.Lookup(nested_qualified_name);
+        }
       }
-      code += "  public " + nested_type_name + " ";
-      code += nestedMethodName + "() { return ";
-      code += getNestedMethodName + "(new " + nested_type_name + "()); }\n";
-      code += "  public " + nested_type_name + " " + getNestedMethodName;
-      code += "(" + nested_type_name + " obj) { ";
-      code += "int o = __offset(" + NumToString(field.value.offset) + "); ";
-      code += "return o != 0 ? obj.__init(__indirect(__vector(o)), bb) : null; }\n";
+      // generate helper if we can find the specified flatbuffer
+      if (nested_type != nullptr) {
+        auto nestedMethodName = MakeCamel(field.name, lang.first_camel_upper)
+          + "As" + nested_type->name;
+        auto getNestedMethodName = nestedMethodName;
+        if (lang.language == IDLOptions::kCSharp) {
+          getNestedMethodName = "Get" + nestedMethodName;
+        }
+        auto nested_type_name = WrapInNameSpace(parser, *nested_type);
+        code += "  public " + nested_type_name + " ";
+        code += nestedMethodName + "() { return ";
+        code += getNestedMethodName + "(new " + nested_type_name + "()); }\n";
+        code += "  public " + nested_type_name + " " + getNestedMethodName;
+        code += "(" + nested_type_name + " obj) { ";
+        code += "int o = __offset(" + NumToString(field.value.offset) + "); ";
+        code += "return o != 0 ? obj.__init(__indirect(__vector(o)), bb) : null; }\n";
+      }
     }
 
     // generate mutators for scalar fields or vectors of scalars
