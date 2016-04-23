@@ -128,9 +128,9 @@ namespace FlatBuffers
 
         private void AssertOffsetAndLength(int offset, int length)
         {
-            if (offset < 0 ||
-                offset > _buffer.Length - length)
-                throw new ArgumentOutOfRangeException();
+          if ((uint)offset > _buffer.Length ||
+              (uint)length > _buffer.Length - offset)
+            throw new ArgumentOutOfRangeException();
         }
 
         public void PutSbyte(int offset, sbyte value)
