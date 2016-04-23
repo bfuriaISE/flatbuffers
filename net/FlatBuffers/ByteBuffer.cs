@@ -15,6 +15,11 @@
  */
 
 #define UNSAFE_BYTEBUFFER  // uncomment this line to use faster ByteBuffer
+#define ASSUME_LITTLE_ENDIAN // uncomment this line to disable endianness check
+
+#if ASSUME_LITTLE_ENDIAN
+#pragma warning disable 429 // disables unreachable code warning CS0429
+#endif
 
 using System;
 
@@ -168,11 +173,16 @@ namespace FlatBuffers
         public unsafe void PutUshort(int offset, ushort value)
         {
             AssertOffsetAndLength(offset, sizeof(ushort));
-            fixed (byte* ptr = _buffer)
+            fixed (byte* ptr = _buffer) 
             {
-                *(ushort*)(ptr + offset) = BitConverter.IsLittleEndian
-                    ? value
-                    : ReverseBytes(value);
+                *(ushort*)(ptr + offset) =
+#if ASSUME_LITTLE_ENDIAN
+                    true
+#else
+                    BitConverter.IsLittleEndian
+#endif
+                        ? value
+                        : ReverseBytes(value);
             }
         }
 
@@ -184,11 +194,16 @@ namespace FlatBuffers
         public unsafe void PutUint(int offset, uint value)
         {
             AssertOffsetAndLength(offset, sizeof(uint));
-            fixed (byte* ptr = _buffer)
+            fixed (byte* ptr = _buffer) 
             {
-                *(uint*)(ptr + offset) = BitConverter.IsLittleEndian
-                    ? value
-                    : ReverseBytes(value);
+                *(uint*)(ptr + offset) =
+#if ASSUME_LITTLE_ENDIAN
+                    true
+#else
+                    BitConverter.IsLittleEndian
+#endif
+                        ? value
+                        : ReverseBytes(value);
             }
         }
 
@@ -201,11 +216,16 @@ namespace FlatBuffers
         {
             AssertOffsetAndLength(offset, sizeof(ulong));
 
-            fixed (byte* ptr = _buffer)
+            fixed (byte* ptr = _buffer) 
             {
-                *(ulong*)(ptr + offset) = BitConverter.IsLittleEndian
-                    ? value
-                    : ReverseBytes(value);
+                *(ulong*)(ptr + offset) =
+#if ASSUME_LITTLE_ENDIAN
+                    true
+#else
+                    BitConverter.IsLittleEndian
+#endif
+                        ? value
+                        : ReverseBytes(value);
             }
         }
 
@@ -214,14 +234,18 @@ namespace FlatBuffers
             AssertOffsetAndLength(offset, sizeof(float));
             fixed (byte* ptr = _buffer)
             {
+#if !ASSUME_LITTLE_ENDIAN
                 if (BitConverter.IsLittleEndian)
                 {
+#endif
                     *(float*)(ptr + offset) = value;
+#if !ASSUME_LITTLE_ENDIAN
                 }
                 else
                 {
                     *(uint*)(ptr + offset) = ReverseBytes(*(uint*)(&value));
                 }
+#endif
             }
         }
 
@@ -230,15 +254,18 @@ namespace FlatBuffers
             AssertOffsetAndLength(offset, sizeof(double));
             fixed (byte* ptr = _buffer)
             {
+#if !ASSUME_LITTLE_ENDIAN
                 if (BitConverter.IsLittleEndian)
                 {
+#endif
                     *(double*)(ptr + offset) = value;
-
+#if !ASSUME_LITTLE_ENDIAN
                 }
                 else
                 {
                     *(ulong*)(ptr + offset) = ReverseBytes(*(ulong*)(ptr + offset));
                 }
+#endif
             }
         }
 #else // !UNSAFE_BYTEBUFFER
@@ -319,11 +346,16 @@ namespace FlatBuffers
         public unsafe ushort GetUshort(int offset)
         {
             AssertOffsetAndLength(offset, sizeof(ushort));
-            fixed (byte* ptr = _buffer)
+            fixed (byte* ptr = _buffer) 
             {
-                return BitConverter.IsLittleEndian
-                    ? *(ushort*)(ptr + offset)
-                    : ReverseBytes(*(ushort*)(ptr + offset));
+                return
+#if ASSUME_LITTLE_ENDIAN
+                    true
+#else
+                    BitConverter.IsLittleEndian
+#endif
+                      ? *(ushort*)(ptr + offset)
+                      : ReverseBytes(*(ushort*)(ptr + offset));
             }
         }
 
@@ -335,11 +367,16 @@ namespace FlatBuffers
         public unsafe uint GetUint(int offset)
         {
             AssertOffsetAndLength(offset, sizeof(uint));
-            fixed (byte* ptr = _buffer)
+            fixed (byte* ptr = _buffer) 
             {
-                return BitConverter.IsLittleEndian
-                    ? *(uint*)(ptr + offset)
-                    : ReverseBytes(*(uint*)(ptr + offset));
+                return
+#if ASSUME_LITTLE_ENDIAN
+                    true
+#else
+                    BitConverter.IsLittleEndian
+#endif
+                        ? *(uint*)(ptr + offset)
+                        : ReverseBytes(*(uint*)(ptr + offset));
             }
         }
 
@@ -351,11 +388,16 @@ namespace FlatBuffers
         public unsafe ulong GetUlong(int offset)
         {
             AssertOffsetAndLength(offset, sizeof(ulong));
-            fixed (byte* ptr = _buffer)
+            fixed (byte* ptr = _buffer) 
             {
-                return BitConverter.IsLittleEndian
-                    ? *(ulong*)(ptr + offset)
-                    : ReverseBytes(*(ulong*)(ptr + offset));
+                return
+#if ASSUME_LITTLE_ENDIAN
+                    true
+#else
+                    BitConverter.IsLittleEndian
+#endif
+                        ? *(ulong*)(ptr + offset)
+                        : ReverseBytes(*(ulong*)(ptr + offset));
             }
         }
 
@@ -364,15 +406,19 @@ namespace FlatBuffers
             AssertOffsetAndLength(offset, sizeof(float));
             fixed (byte* ptr = _buffer)
             {
+#if !ASSUME_LITTLE_ENDIAN
                 if (BitConverter.IsLittleEndian)
                 {
+#endif
                     return *(float*)(ptr + offset);
+#if !ASSUME_LITTLE_ENDIAN
                 }
                 else
                 {
                     uint uvalue = ReverseBytes(*(uint*)(ptr + offset));
                     return *(float*)(&uvalue);
                 }
+#endif
             }
         }
 
@@ -381,15 +427,19 @@ namespace FlatBuffers
             AssertOffsetAndLength(offset, sizeof(double));
             fixed (byte* ptr = _buffer)
             {
+#if !ASSUME_LITTLE_ENDIAN
                 if (BitConverter.IsLittleEndian)
                 {
+#endif
                     return *(double*)(ptr + offset);
+#if !ASSUME_LITTLE_ENDIAN
                 }
                 else
                 {
                     ulong uvalue = ReverseBytes(*(ulong*)(ptr + offset));
                     return *(double*)(&uvalue);
                 }
+#endif
             }
         }
 #else // !UNSAFE_BYTEBUFFER
