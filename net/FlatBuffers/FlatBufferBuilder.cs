@@ -28,7 +28,7 @@ namespace FlatBuffers
     /// Responsible for building up and accessing a FlatBuffer formatted byte
     /// array (via ByteBuffer).
     /// </summary>
-    public class FlatBufferBuilder
+    public class FlatBufferBuilder : IDisposable
     {
         private int _space;
         private ByteBuffer _bb;
@@ -46,6 +46,8 @@ namespace FlatBuffers
         private int _numVtables = 0;
         // For the current vector being built.
         private int _vectorNumElems = 0;
+        // Indicates whether builder can dispose and grow byte buffer
+        private bool _ownsByteBuffer = false;
 
         /// <summary>
         /// Create a FlatBufferBuilder with a given initial size.
@@ -60,6 +62,29 @@ namespace FlatBuffers
                     initialSize, "Must be greater than zero");
             _space = initialSize;
             _bb = new ByteBuffer(new byte[initialSize]);
+            _ownsByteBuffer = true;
+        }
+
+        /// <summary>
+        /// Create a FlatBufferBuilder with a given initial size.
+        /// </summary>
+        /// <param name="byteBuffer">
+        /// ByteBuffer to use for the internal buffer.
+        /// </param>
+        /// <param name="ownsByteBuffer">
+        /// Specifies whether or not FlatBufferBuilder can dispose of the ByteBuffer
+        /// </param>
+        public FlatBufferBuilder(ByteBuffer byteBuffer, bool ownsByteBuffer = false)
+        {
+            if (byteBuffer == null)
+              throw new ArgumentNullException("byteBuffer");
+            if (byteBuffer.IsDisposed)
+              throw new ArgumentException("ByteBuffer is disposed");
+
+            _bb = byteBuffer;
+            _bb.Reset();
+            _space = _bb.Length;
+            _ownsByteBuffer = ownsByteBuffer;
         }
 
         /// <summary>
@@ -75,6 +100,14 @@ namespace FlatBuffers
             _objectStart = 0;
             _numVtables = 0;
             _vectorNumElems = 0;
+        }
+
+        public void Dispose()
+        {
+            if (!_bb.IsDisposed) 
+            {
+                _bb.Dispose();
+            }
         }
 
         /// <summary>
@@ -97,19 +130,26 @@ namespace FlatBuffers
 
         // Doubles the size of the ByteBuffer, and copies the old data towards
         // the end of the new buffer (since we build the buffer backwards).
-        void GrowBuffer()
+        private void GrowBuffer(int requiredSize = 0)
         {
-            var oldBuf = _bb.Data;
-            var oldBufSize = oldBuf.Length;
-            if ((oldBufSize & 0xC0000000) != 0)
-                throw new Exception(
-                    "FlatBuffers: cannot grow buffer beyond 2 gigabytes.");
+            if (!_ownsByteBuffer)
+              throw new NotSupportedException("Cannot grow ByteBuffer not owned by builder");
 
-            var newBufSize = oldBufSize << 1;
+            int oldBufSize = _bb.Length;
+            int newBufSize = oldBufSize;
+            do 
+            {
+                if ((newBufSize & 0xC0000000) != 0)
+                    throw new Exception(
+                        "FlatBuffers: cannot grow buffer beyond 2 gigabytes.");
+
+                newBufSize <<= 1;
+            }
+            while (newBufSize < requiredSize);
+
             var newBuf = new byte[newBufSize];
-
-            Buffer.BlockCopy(oldBuf, 0, newBuf, newBufSize - oldBufSize,
-                             oldBufSize);
+            _bb.CopyTo(0, newBuf, newBufSize - oldBufSize, oldBufSize);
+            _bb.Dispose();
             _bb = new ByteBuffer(newBuf, newBufSize);
         }
 
@@ -125,14 +165,16 @@ namespace FlatBuffers
                 _minAlign = size;
             // Find the amount of alignment needed such that `size` is properly
             // aligned after `additional_bytes`
+            int numBytesInBuffer = _bb.Length - _space;
             var alignSize =
-                ((~((int)_bb.Length - _space + additionalBytes)) + 1) &
+                ((~(numBytesInBuffer + additionalBytes)) + 1) &
                 (size - 1);
+            int requiredCapacity = alignSize + size + additionalBytes;
             // Reallocate the buffer if needed.
-            while (_space < alignSize + size + additionalBytes)
+            if (_space < requiredCapacity)
             {
                 var oldBufSize = (int)_bb.Length;
-                GrowBuffer();
+                GrowBuffer(numBytesInBuffer + requiredCapacity);
                 _space += (int)_bb.Length - oldBufSize;
 
             }
@@ -463,7 +505,7 @@ namespace FlatBuffers
             AddByte(0);
             var utf8StringLen = Encoding.UTF8.GetByteCount(s);
             StartVector(1, utf8StringLen, 1);
-            Encoding.UTF8.GetBytes(s, 0, s.Length, _bb.Data, _space -= utf8StringLen);
+            _bb.PutStringUtf8(_space -= utf8StringLen, s, utf8StringLen);
             return new StringOffset(EndVector().Value);
         }
 
@@ -474,13 +516,31 @@ namespace FlatBuffers
         /// <param name="offset">source start offset</param>
         /// <param name="count">number of bytes to copy</param>
         /// <returns>
-        /// The offset in the buffer where the vector starts.
+        /// The offset in the flatbuffer where the vector starts.
         /// </returns>
-        public VectorOffset CreateByteVector(byte[] buffer, int offset, int count) {
-          StartVector(sizeof(byte), count, sizeof(byte));
-          int size = sizeof(byte)*count;
-          Buffer.BlockCopy(buffer, offset, _bb.Data, _space -= size, size);
-          return new VectorOffset(EndVector().Value);
+        public VectorOffset CreateByteVector(byte[] buffer, int offset, int count) 
+        {
+            StartVector(sizeof(byte), count, sizeof(byte));
+            int size = sizeof(byte)*count;
+            _bb.CopyFrom(buffer, offset, _space -= size, count);
+            return new VectorOffset(EndVector().Value);
+        }
+
+        /// <summary>
+        /// Create a vector of bytes using <paramref name="byteBuffer"/> as the source
+        /// </summary>
+        /// <param name="byteBuffer">source byte buffer</param>
+        /// <param name="offset">source start offset</param>
+        /// <param name="count">number of bytes to copy</param>
+        /// <returns>
+        /// The offset in the flatbuffer where the vector starts.
+        /// </returns>
+        public VectorOffset CreateByteVector(ByteBuffer byteBuffer, int offset, int count) 
+        {
+            StartVector(sizeof(byte), count, sizeof(byte));
+            int size = sizeof(byte) * count;
+            _bb.CopyFrom(byteBuffer, offset, _space -= size, count);
+            return new VectorOffset(EndVector().Value);
         }
 
         /// <summary>
@@ -488,12 +548,13 @@ namespace FlatBuffers
         /// </summary>
         /// <param name="byteBuffer">source byte buffer</param>
         /// <returns>
-        /// The offset in the buffer where the vector starts.
+        /// The offset in the flatbuffer where the vector starts.
         /// </returns>
-        public VectorOffset CreateByteVector(ByteBuffer byteBuffer) {
-          int offset = byteBuffer.Position;
-          int count = byteBuffer.Length - offset;
-          return CreateByteVector(byteBuffer.Data, offset, count);
+        public VectorOffset CreateByteVector(ByteBuffer byteBuffer) 
+        {
+            return CreateByteVector(byteBuffer,
+                                    byteBuffer.Position,
+                                    byteBuffer.Length - byteBuffer.Position);
         }
 
         /// <summary>
@@ -503,13 +564,14 @@ namespace FlatBuffers
         /// <param name="offset">source start offset</param>
         /// <param name="count">number of sbytes to copy</param>
         /// <returns>
-        /// The offset in the buffer where the vector starts.
+        /// The offset in the flatbuffer where the vector starts.
         /// </returns>
-        public VectorOffset CreateSbyteVector(sbyte[] buffer, int offset, int count) {
-          StartVector(sizeof(sbyte), count, sizeof(sbyte));
-          int size = sizeof(sbyte) * count;
-          Buffer.BlockCopy(buffer, offset, _bb.Data, _space -= size, size);
-          return new VectorOffset(EndVector().Value);
+        public VectorOffset CreateSbyteVector(sbyte[] buffer, int offset, int count) 
+        {
+            StartVector(sizeof(sbyte), count, sizeof(sbyte));
+            int size = sizeof(sbyte) * count;
+            _bb.CopyFrom(buffer, offset, _space -= size, count);
+            return new VectorOffset(EndVector().Value);
         }
 
         /// <summary>
@@ -519,18 +581,15 @@ namespace FlatBuffers
         /// <param name="offset">source start offset</param>
         /// <param name="count">number of booleans to copy</param>
         /// <returns>
-        /// The offset in the buffer where the vector starts.
+        /// The offset in the flatbuffer where the vector starts.
         /// </returns>
-        public VectorOffset CreateBoolVector(bool[] buffer, int offset, int count) {
-          StartVector(sizeof(bool), count, sizeof(bool));
-          // We can't use officially use Buffer.BlockCopy since we're not guaranteed that true
-          // is represented as 0x1.
-          for (int i = offset + count - 1; i >= offset; i--) {
-            // use PutBool instead of AddBool since alignment and capacity was already handled
-            // by StartVector
-            PutBool(buffer[i]);
-          }
-          return new VectorOffset(EndVector().Value);
+        public VectorOffset CreateBoolVector(bool[] buffer, int offset, int count) 
+        {
+            // bool is written as a byte
+            StartVector(sizeof(byte), count, sizeof(byte));
+            int size = sizeof(byte) * count;
+            _bb.CopyFrom(buffer, offset, _space -= size, count);
+            return new VectorOffset(EndVector().Value);
         }
 
         /// <summary>
@@ -540,13 +599,14 @@ namespace FlatBuffers
         /// <param name="offset">source start offset</param>
         /// <param name="count">number of shorts to copy</param>
         /// <returns>
-        /// The offset in the buffer where the vector starts.
+        /// The offset in the flatbuffer where the vector starts.
         /// </returns>
-        public VectorOffset CreateShortVector(short[] buffer, int offset, int count) {
-          StartVector(sizeof(short), count, sizeof(short));
-          int size = sizeof(short) * count;
-          Buffer.BlockCopy(buffer, offset, _bb.Data, _space -= size, size);
-          return new VectorOffset(EndVector().Value);
+        public VectorOffset CreateShortVector(short[] buffer, int offset, int count) 
+        {
+            StartVector(sizeof(short), count, sizeof(short));
+            int size = sizeof(short) * count;
+            _bb.CopyFrom(buffer, offset, _space -= size, count);
+            return new VectorOffset(EndVector().Value);
         }
 
         /// <summary>
@@ -556,13 +616,14 @@ namespace FlatBuffers
         /// <param name="offset">source start offset</param>
         /// <param name="count">number of ushorts to copy</param>
         /// <returns>
-        /// The offset in the buffer where the vector starts.
+        /// The offset in the flatbuffer where the vector starts.
         /// </returns>
-        public VectorOffset CreateUshortVector(ushort[] buffer, int offset, int count) {
-          StartVector(sizeof(ushort), count, sizeof(ushort));
-          int size = sizeof(ushort) * count;
-          Buffer.BlockCopy(buffer, offset, _bb.Data, _space -= size, size);
-          return new VectorOffset(EndVector().Value);
+        public VectorOffset CreateUshortVector(ushort[] buffer, int offset, int count) 
+        {
+            StartVector(sizeof(ushort), count, sizeof(ushort));
+            int size = sizeof(ushort) * count;
+            _bb.CopyFrom(buffer, offset, _space -= size, count);
+            return new VectorOffset(EndVector().Value);
         }
 
         /// <summary>
@@ -572,13 +633,14 @@ namespace FlatBuffers
         /// <param name="offset">source start offset</param>
         /// <param name="count">number of ints to copy</param>
         /// <returns>
-        /// The offset in the buffer where the vector starts.
+        /// The offset in the flatbuffer where the vector starts.
         /// </returns>
-        public VectorOffset CreateIntVector(int[] buffer, int offset, int count) {
-          StartVector(sizeof(int), count, sizeof(int));
-          int size = sizeof(int) * count;
-          Buffer.BlockCopy(buffer, offset, _bb.Data, _space -= size, size);
-          return new VectorOffset(EndVector().Value);
+        public VectorOffset CreateIntVector(int[] buffer, int offset, int count)
+        {
+            StartVector(sizeof(int), count, sizeof(int));
+            int size = sizeof(int) * count;
+            _bb.CopyFrom(buffer, offset, _space -= size, count);
+            return new VectorOffset(EndVector().Value);
         }
 
         /// <summary>
@@ -588,13 +650,14 @@ namespace FlatBuffers
         /// <param name="offset">source start offset</param>
         /// <param name="count">number of uints to copy</param>
         /// <returns>
-        /// The offset in the buffer where the vector starts.
+        /// The offset in the flatbuffer where the vector starts.
         /// </returns>
-        public VectorOffset CreateUintVector(uint[] buffer, int offset, int count) {
-          StartVector(sizeof(uint), count, sizeof(uint));
-          int size = sizeof(uint) * count;
-          Buffer.BlockCopy(buffer, offset, _bb.Data, _space -= size, size);
-          return new VectorOffset(EndVector().Value);
+        public VectorOffset CreateUintVector(uint[] buffer, int offset, int count) 
+        {
+            StartVector(sizeof(uint), count, sizeof(uint));
+            int size = sizeof(uint) * count;
+            _bb.CopyFrom(buffer, offset, _space -= size, count);
+            return new VectorOffset(EndVector().Value);
         }
 
         /// <summary>
@@ -604,13 +667,14 @@ namespace FlatBuffers
         /// <param name="offset">source start offset</param>
         /// <param name="count">number of longs to copy</param>
         /// <returns>
-        /// The offset in the buffer where the vector starts.
+        /// The offset in the flatbuffer where the vector starts.
         /// </returns>
-        public VectorOffset CreateLongVector(long[] buffer, int offset, int count) {
-          StartVector(sizeof(long), count, sizeof(long));
-          int size = sizeof(long) * count;
-          Buffer.BlockCopy(buffer, offset, _bb.Data, _space -= size, size);
-          return new VectorOffset(EndVector().Value);
+        public VectorOffset CreateLongVector(long[] buffer, int offset, int count) 
+        {
+            StartVector(sizeof(long), count, sizeof(long));
+            int size = sizeof(long) * count;
+            _bb.CopyFrom(buffer, offset, _space -= size, count);
+            return new VectorOffset(EndVector().Value);
         }
 
         /// <summary>
@@ -620,13 +684,14 @@ namespace FlatBuffers
         /// <param name="offset">source start offset</param>
         /// <param name="count">number of ulongs to copy</param>
         /// <returns>
-        /// The offset in the buffer where the vector starts.
+        /// The offset in the flatbuffer where the vector starts.
         /// </returns>
-        public VectorOffset CreateUlongVector(ulong[] buffer, int offset, int count) {
-          StartVector(sizeof(ulong), count, sizeof(ulong));
-          int size = sizeof(ulong) * count;
-          Buffer.BlockCopy(buffer, offset, _bb.Data, _space -= size, size);
-          return new VectorOffset(EndVector().Value);
+        public VectorOffset CreateUlongVector(ulong[] buffer, int offset, int count) 
+        {
+            StartVector(sizeof(ulong), count, sizeof(ulong));
+            int size = sizeof(ulong) * count;
+            _bb.CopyFrom(buffer, offset, _space -= size, count);
+            return new VectorOffset(EndVector().Value);
         }
 
         /// <summary>
@@ -636,13 +701,14 @@ namespace FlatBuffers
         /// <param name="offset">source start offset</param>
         /// <param name="count">number of floats to copy</param>
         /// <returns>
-        /// The offset in the buffer where the vector starts.
+        /// The offset in the flatbuffer where the vector starts.
         /// </returns>
-        public VectorOffset CreateFloatVector(float[] buffer, int offset, int count) {
-          StartVector(sizeof(float), count, sizeof(float));
-          int size = sizeof(float) * count;
-          Buffer.BlockCopy(buffer, offset, _bb.Data, _space -= size, size);
-          return new VectorOffset(EndVector().Value);
+        public VectorOffset CreateFloatVector(float[] buffer, int offset, int count) 
+        {
+            StartVector(sizeof(float), count, sizeof(float));
+            int size = sizeof(float) * count;
+            _bb.CopyFrom(buffer, offset, _space -= size, count);
+            return new VectorOffset(EndVector().Value);
         }
 
         /// <summary>
@@ -652,13 +718,14 @@ namespace FlatBuffers
         /// <param name="offset">source start offset</param>
         /// <param name="count">number of doubles to copy</param>
         /// <returns>
-        /// The offset in the buffer where the vector starts.
+        /// The offset in the flatbuffer where the vector starts.
         /// </returns>
-        public VectorOffset CreateDoubleVector(double[] buffer, int offset, int count) {
-          StartVector(sizeof(double), count, sizeof(double));
-          int size = sizeof(double) * count;
-          Buffer.BlockCopy(buffer, offset, _bb.Data, _space -= size, size);
-          return new VectorOffset(EndVector().Value);
+        public VectorOffset CreateDoubleVector(double[] buffer, int offset, int count) 
+        {
+            StartVector(sizeof(double), count, sizeof(double));
+            int size = sizeof(double) * count;
+            _bb.CopyFrom(buffer, offset, _space -= size, count);
+            return new VectorOffset(EndVector().Value);
         }
 
         /// @cond FLATBUFFERS_INTERNAL
@@ -794,9 +861,8 @@ namespace FlatBuffers
         /// </returns>
         public byte[] SizedByteArray()
         {
-            var newArray = new byte[_bb.Data.Length - _bb.Position];
-            Buffer.BlockCopy(_bb.Data, _bb.Position, newArray, 0,
-                             _bb.Data.Length - _bb.Position);
+            var newArray = new byte[_bb.Length - _bb.Position];
+            _bb.CopyTo(_bb.Position, newArray, 0, _bb.Length - _bb.Position);
             return newArray;
         }
 

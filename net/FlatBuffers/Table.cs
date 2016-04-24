@@ -49,7 +49,7 @@ namespace FlatBuffers
             offset += bb.GetInt(offset);
             var len = bb.GetInt(offset);
             var startPos = offset + sizeof(int);
-            return Encoding.UTF8.GetString(bb.Data, startPos , len);
+            return bb.GetStringUtf8(startPos, len);
         }
 
         // Get the length of a vector whose offset is stored at "offset" in this object.
@@ -79,7 +79,7 @@ namespace FlatBuffers
 
             var pos = this.__vector(o);
             var len = this.__vector_len(o);
-            return new ArraySegment<byte>(this.bb.Data, pos, len);
+            return bb.GetArraySegment(pos, len);
         }
 
         // Initialize any Table-derived type to point to the union at the given offset.

@@ -14,14 +14,22 @@
  * limitations under the License.
  */
 
-#define UNSAFE_BYTEBUFFER  // uncomment this line to use faster ByteBuffer
-#define ASSUME_LITTLE_ENDIAN // uncomment this line to disable endianness check
+#define UNSAFE_BYTEBUFFER     // uncomment this line to use faster ByteBuffer
+#define ASSUME_LITTLE_ENDIAN  // uncomment this line to disable endianness check
+#define PINNED_BYTEBUFFER     // uncomment this line to enable buffer pinning and working with unmanaged memory
 
 #if ASSUME_LITTLE_ENDIAN
-#pragma warning disable 429 // disables unreachable code warning CS0429
+#pragma warning disable 162, 429 // disables unreachable code warnings CS0162, CS0429
 #endif
 
 using System;
+using System.Text;
+
+#if PINNED_BYTEBUFFER
+using System.Runtime.InteropServices;
+using System.Security;
+#endif
+
 
 namespace FlatBuffers
 {
@@ -31,21 +39,127 @@ namespace FlatBuffers
     /// unsafe code in your project and #define UNSAFE_BYTEBUFFER to use a
     /// MUCH faster version of ByteBuffer.
     /// </summary>
-    public class ByteBuffer
+    public class ByteBuffer : IDisposable
     {
+#if PINNED_BYTEBUFFER
+        // Need to P/Invoke memmove to handle case when dealing with two ByteBuffers that point
+        // to unmanaged memory.
+        [DllImport("msvcrt.dll", SetLastError=false)]
+        [SuppressUnmanagedCodeSecurity]
+        static extern IntPtr Memmove(IntPtr dest, IntPtr src, int count);
+
+        private readonly IntPtr _bufferPtr;
+        private readonly int _bufferLength;
+        private GCHandle _pinningHandle;
+#endif
+        private bool _isDisposed;
         private readonly byte[] _buffer;
         private int _pos;  // Must track start of the buffer.
 
-        public int Length { get { return _buffer.Length; } }
-
+        public int Length 
+        {
+            get 
+            {
+                return
+#if PINNED_BYTEBUFFER
+                    _bufferLength;
+#else
+                    _buffer.Length;
+#endif
+            }
+        }
+        
+        /// <summary>
+        /// Returns the internal managed byte array. Note: this may be null if PINNED_BYTEBUFFER is 
+        /// defined and the internal buffer is an unmanaged byte array.
+        /// </summary>
         public byte[] Data { get { return _buffer; } }
+
+#if PINNED_BYTEBUFFER
+        /// <summary>
+        /// Returns a pointer to the internal buffer.
+        /// </summary>
+        public IntPtr DataPtr { get { return _bufferPtr; } }
+#endif
 
         public ByteBuffer(byte[] buffer) : this(buffer, 0) { }
 
         public ByteBuffer(byte[] buffer, int pos)
         {
+            if (buffer == null)
+                throw new ArgumentNullException("buffer");
+            if ((uint)pos > buffer.Length)
+                throw new ArgumentOutOfRangeException("pos");
             _buffer = buffer;
             _pos = pos;
+#if PINNED_BYTEBUFFER
+            _bufferLength = buffer.Length;
+            _pinningHandle = GCHandle.Alloc(_buffer, GCHandleType.Pinned);
+            _bufferPtr = _pinningHandle.AddrOfPinnedObject();
+#endif
+        }
+
+#if PINNED_BYTEBUFFER
+        public ByteBuffer(IntPtr bufferPtr, int pos, int bufferLength) 
+        {
+            if (bufferPtr == IntPtr.Zero)
+                throw new ArgumentNullException("bufferPtr");
+            if (bufferLength < 0)
+                throw new ArgumentOutOfRangeException("bufferLength");
+            if ((uint)pos > bufferLength)
+                throw new ArgumentOutOfRangeException("pos");
+            _bufferPtr = bufferPtr;
+            _pos = pos;
+            _bufferLength = bufferLength;
+            GC.SuppressFinalize(this);
+        }
+
+        public ByteBuffer(IntPtr bufferPtr, int bufferLength) : this(bufferPtr, 0, bufferLength)
+        {
+
+        }
+
+        ~ByteBuffer() 
+        {
+            Dispose(false);
+        }
+#endif
+        public void Dispose() 
+        {
+            Dispose(true);
+#if PINNED_BYTEBUFFER
+            GC.SuppressFinalize(this);
+#endif
+        }
+
+        protected void Dispose(bool disposing) 
+        {
+            if (!_isDisposed) {
+#if PINNED_BYTEBUFFER
+                if (_buffer != null) 
+                {
+                    _pinningHandle.Free();
+                }
+#endif
+                _isDisposed = true;
+            }
+        }
+
+#if ASSUME_LITTLE_ENDIAN
+        static ByteBuffer() 
+        {
+            if (!BitConverter.IsLittleEndian) 
+            {
+                throw new NotSupportedException(
+                    "ByteBuffer compiled to only support little endian architectures. " + 
+                      "Re-compile without defining ASSUME_LITTLE_ENDIAN.");
+            }
+        }
+#endif
+
+        public bool IsDisposed 
+        {
+            get { return _isDisposed; }
         }
 
         public int Position {
@@ -89,11 +203,15 @@ namespace FlatBuffers
                     ((input & 0xFF00000000000000UL) >> 56));
         }
 
-#if !UNSAFE_BYTEBUFFER
+#if !UNSAFE_BYTEBUFFER && !PINNED_BYTEBUFFER
         // Helper functions for the safe (but slower) version.
         protected void WriteLittleEndian(int offset, int count, ulong data)
         {
+#if ASSUME_LITTLE_ENDIAN
+            if (true)
+#else
             if (BitConverter.IsLittleEndian)
+#endif
             {
                 for (int i = 0; i < count; i++)
                 {
@@ -113,7 +231,11 @@ namespace FlatBuffers
         {
             AssertOffsetAndLength(offset, count);
             ulong r = 0;
+#if ASSUME_LITTLE_ENDIAN
+            if (true)
+#else
             if (BitConverter.IsLittleEndian)
+#endif
             {
                 for (int i = 0; i < count; i++)
                 {
@@ -129,32 +251,71 @@ namespace FlatBuffers
             }
             return r;
         }
-#endif // !UNSAFE_BYTEBUFFER
+#endif // !UNSAFE_BYTEBUFFER && !PINNED_BYTEBUFFER
 
-        private void AssertOffsetAndLength(int offset, int length)
+        private void AssertOffsetAndLength(int offset, int length) 
         {
-          if ((uint)offset > _buffer.Length ||
-              (uint)length > _buffer.Length - offset)
-            throw new ArgumentOutOfRangeException();
+            int bufferLength =
+#if PINNED_BYTEBUFFER
+                _bufferLength;
+#else
+                _buffer.Length;
+#endif
+            if ((uint)offset > bufferLength ||
+                (uint)length > bufferLength - offset)
+              throw new ArgumentOutOfRangeException();
         }
 
+        private static void AssertOffsetAndLength<T>(T[] array, int offset, int count) 
+        {
+            if ((uint)offset > array.Length ||
+                (uint)count > array.Length - offset)
+              throw new ArgumentOutOfRangeException();
+        }
+
+#if PINNED_BYTEBUFFER
+        public unsafe void PutSbyte(int offset, sbyte value)
+#else
         public void PutSbyte(int offset, sbyte value)
+#endif
         {
             AssertOffsetAndLength(offset, sizeof(sbyte));
+#if PINNED_BYTEBUFFER
+            *((sbyte*)_bufferPtr.ToPointer() + offset) = value;
+#else
             _buffer[offset] = (byte)value;
+#endif
         }
 
+#if PINNED_BYTEBUFFER
+        public unsafe void PutByte(int offset, byte value)
+#else
         public void PutByte(int offset, byte value)
+#endif
         {
             AssertOffsetAndLength(offset, sizeof(byte));
-            _buffer[offset] = value;
+#if PINNED_BYTEBUFFER
+            *((byte*)_bufferPtr.ToPointer() + offset) = value;
+#else
+            _buffer[offset] = (byte)value;
+#endif
         }
 
+#if PINNED_BYTEBUFFER
+        public unsafe void PutByte(int offset, byte value, int count)
+#else
         public void PutByte(int offset, byte value, int count)
+#endif
         {
             AssertOffsetAndLength(offset, sizeof(byte) * count);
-            for (var i = 0; i < count; ++i)
-                _buffer[offset + i] = value;
+            for (int endOffset = offset + count; offset < endOffset; ++offset) 
+            { 
+#if PINNED_BYTEBUFFER
+                *((byte*)_bufferPtr.ToPointer() + offset) = value;
+#else
+                _buffer[offset] = value;
+#endif
+            }
         }
 
         // this method exists in order to conform with Java ByteBuffer standards
@@ -163,7 +324,7 @@ namespace FlatBuffers
             PutByte(offset, value);
         }
 
-#if UNSAFE_BYTEBUFFER
+#if UNSAFE_BYTEBUFFER || PINNED_BYTEBUFFER
         // Unsafe but more efficient versions of Put*.
         public void PutShort(int offset, short value)
         {
@@ -173,7 +334,11 @@ namespace FlatBuffers
         public unsafe void PutUshort(int offset, ushort value)
         {
             AssertOffsetAndLength(offset, sizeof(ushort));
-            fixed (byte* ptr = _buffer) 
+#if PINNED_BYTEBUFFER
+            byte* ptr = (byte*)_bufferPtr.ToPointer();
+#else
+            fixed (byte* ptr = _buffer)
+#endif
             {
                 *(ushort*)(ptr + offset) =
 #if ASSUME_LITTLE_ENDIAN
@@ -194,7 +359,11 @@ namespace FlatBuffers
         public unsafe void PutUint(int offset, uint value)
         {
             AssertOffsetAndLength(offset, sizeof(uint));
-            fixed (byte* ptr = _buffer) 
+#if PINNED_BYTEBUFFER
+            byte* ptr = (byte*)_bufferPtr.ToPointer();
+#else
+            fixed (byte* ptr = _buffer)
+#endif 
             {
                 *(uint*)(ptr + offset) =
 #if ASSUME_LITTLE_ENDIAN
@@ -216,7 +385,11 @@ namespace FlatBuffers
         {
             AssertOffsetAndLength(offset, sizeof(ulong));
 
-            fixed (byte* ptr = _buffer) 
+#if PINNED_BYTEBUFFER
+            byte* ptr = (byte*)_bufferPtr.ToPointer();
+#else
+            fixed (byte* ptr = _buffer)
+#endif 
             {
                 *(ulong*)(ptr + offset) =
 #if ASSUME_LITTLE_ENDIAN
@@ -232,43 +405,52 @@ namespace FlatBuffers
         public unsafe void PutFloat(int offset, float value)
         {
             AssertOffsetAndLength(offset, sizeof(float));
+#if PINNED_BYTEBUFFER
+            byte* ptr = (byte*)_bufferPtr.ToPointer();
+#else
             fixed (byte* ptr = _buffer)
-            {
-#if !ASSUME_LITTLE_ENDIAN
-                if (BitConverter.IsLittleEndian)
-                {
 #endif
+            {
+#if ASSUME_LITTLE_ENDIAN
+                if (true)
+#else
+                if (BitConverter.IsLittleEndian)
+#endif
+                {
                     *(float*)(ptr + offset) = value;
-#if !ASSUME_LITTLE_ENDIAN
                 }
                 else
                 {
                     *(uint*)(ptr + offset) = ReverseBytes(*(uint*)(&value));
                 }
-#endif
             }
         }
 
         public unsafe void PutDouble(int offset, double value)
         {
             AssertOffsetAndLength(offset, sizeof(double));
+#if PINNED_BYTEBUFFER
+            byte* ptr = (byte*)_bufferPtr.ToPointer();
+#else
             fixed (byte* ptr = _buffer)
-            {
-#if !ASSUME_LITTLE_ENDIAN
-                if (BitConverter.IsLittleEndian)
-                {
 #endif
+            {
+#if ASSUME_LITTLE_ENDIAN
+                if (true)
+#else
+                if (BitConverter.IsLittleEndian)
+#endif
+                {
                     *(double*)(ptr + offset) = value;
-#if !ASSUME_LITTLE_ENDIAN
                 }
                 else
                 {
                     *(ulong*)(ptr + offset) = ReverseBytes(*(ulong*)(ptr + offset));
                 }
-#endif
             }
         }
-#else // !UNSAFE_BYTEBUFFER
+
+#else // !UNSAFE_BYTEBUFFER && !PINNED_BYTEBUFFER
         // Slower versions of Put* for when unsafe code is not allowed.
         public void PutShort(int offset, short value)
         {
@@ -322,21 +504,69 @@ namespace FlatBuffers
             WriteLittleEndian(offset, sizeof(double), ulonghelper[0]);
         }
 
-#endif // UNSAFE_BYTEBUFFER
+#endif // UNSAFE_BYTEBUFFER || PINNED_BYTEBUFFER
 
+#if UNSAFE_BYTEBUFFER || PINNED_BYTEBUFFER
+        public unsafe void PutStringUtf8(int offset, string value, int? byteLength = null)
+#else
+        public void PutStringUtf8(int offset, string value, int? byteLength = null)
+#endif
+        {
+            if (byteLength == null) 
+            {
+                byteLength = Encoding.UTF8.GetByteCount(value);
+            }
+            AssertOffsetAndLength(offset, byteLength.GetValueOrDefault());
+#if UNSAFE_BYTEBUFFER || PINNED_BYTEBUFFER
+
+#if PINNED_BYTEBUFFER
+            byte* ptr = (byte*)_bufferPtr.ToPointer();
+#else
+            fixed(byte* ptr = _buffer)
+#endif // PINNED_BYTEBUFFER
+            {
+                fixed (char* charPtr = value) 
+                {
+                    Encoding.UTF8.GetBytes(charPtr, value.Length, ptr + offset, byteLength.GetValueOrDefault());
+                }
+            }
+
+#else // !UNSAFE_BYTEBUFFER && !PINNED_BYTEBUFFER
+            Encoding.UTF8.GetBytes(value, 0, value.Length, _buffer, offset);
+#endif // UNSAFE_BYTEBUFFER || PINNED_BYTEBUFFER
+        }
+
+#if PINNED_BYTEBUFFER
+        public unsafe sbyte GetSbyte(int index)
+#else
         public sbyte GetSbyte(int index)
+#endif
         {
             AssertOffsetAndLength(index, sizeof(sbyte));
-            return (sbyte)_buffer[index];
+            return
+#if PINNED_BYTEBUFFER
+                *((sbyte*)_bufferPtr.ToPointer() + index);
+#else
+                (sbyte)_buffer[index];
+#endif
         }
 
+#if PINNED_BYTEBUFFER
+        public unsafe byte Get(int index)
+#else
         public byte Get(int index)
+#endif
         {
             AssertOffsetAndLength(index, sizeof(byte));
-            return _buffer[index];
+            return
+#if PINNED_BYTEBUFFER
+                *((byte*)_bufferPtr.ToPointer() + index);
+#else
+                (byte)_buffer[index];
+#endif
         }
 
-#if UNSAFE_BYTEBUFFER
+#if UNSAFE_BYTEBUFFER || PINNED_BYTEBUFFER
         // Unsafe but more efficient versions of Get*.
         public short GetShort(int offset)
         {
@@ -346,7 +576,11 @@ namespace FlatBuffers
         public unsafe ushort GetUshort(int offset)
         {
             AssertOffsetAndLength(offset, sizeof(ushort));
-            fixed (byte* ptr = _buffer) 
+#if PINNED_BYTEBUFFER
+            byte* ptr = (byte*)_bufferPtr.ToPointer();
+#else
+            fixed (byte* ptr = _buffer)
+#endif 
             {
                 return
 #if ASSUME_LITTLE_ENDIAN
@@ -367,7 +601,11 @@ namespace FlatBuffers
         public unsafe uint GetUint(int offset)
         {
             AssertOffsetAndLength(offset, sizeof(uint));
-            fixed (byte* ptr = _buffer) 
+#if PINNED_BYTEBUFFER
+            byte* ptr = (byte*)_bufferPtr.ToPointer();
+#else
+            fixed (byte* ptr = _buffer)
+#endif 
             {
                 return
 #if ASSUME_LITTLE_ENDIAN
@@ -388,7 +626,11 @@ namespace FlatBuffers
         public unsafe ulong GetUlong(int offset)
         {
             AssertOffsetAndLength(offset, sizeof(ulong));
-            fixed (byte* ptr = _buffer) 
+#if PINNED_BYTEBUFFER
+            byte* ptr = (byte*)_bufferPtr.ToPointer();
+#else
+            fixed (byte* ptr = _buffer)
+#endif 
             {
                 return
 #if ASSUME_LITTLE_ENDIAN
@@ -404,45 +646,53 @@ namespace FlatBuffers
         public unsafe float GetFloat(int offset)
         {
             AssertOffsetAndLength(offset, sizeof(float));
+#if PINNED_BYTEBUFFER
+            byte* ptr = (byte*)_bufferPtr.ToPointer();
+#else
             fixed (byte* ptr = _buffer)
-            {
-#if !ASSUME_LITTLE_ENDIAN
-                if (BitConverter.IsLittleEndian)
-                {
 #endif
+            {
+#if ASSUME_LITTLE_ENDIAN
+                if (true)
+#else
+                if (BitConverter.IsLittleEndian)
+#endif
+                {
                     return *(float*)(ptr + offset);
-#if !ASSUME_LITTLE_ENDIAN
                 }
                 else
                 {
                     uint uvalue = ReverseBytes(*(uint*)(ptr + offset));
                     return *(float*)(&uvalue);
                 }
-#endif
             }
         }
 
         public unsafe double GetDouble(int offset)
         {
             AssertOffsetAndLength(offset, sizeof(double));
+#if PINNED_BYTEBUFFER
+            byte* ptr = (byte*)_bufferPtr.ToPointer();
+#else
             fixed (byte* ptr = _buffer)
-            {
-#if !ASSUME_LITTLE_ENDIAN
-                if (BitConverter.IsLittleEndian)
-                {
 #endif
+            {
+#if ASSUME_LITTLE_ENDIAN
+                if (true)
+#else
+                if (BitConverter.IsLittleEndian)
+#endif
+                {
                     return *(double*)(ptr + offset);
-#if !ASSUME_LITTLE_ENDIAN
                 }
                 else
                 {
                     ulong uvalue = ReverseBytes(*(ulong*)(ptr + offset));
                     return *(double*)(&uvalue);
                 }
-#endif
             }
         }
-#else // !UNSAFE_BYTEBUFFER
+#else // !UNSAFE_BYTEBUFFER && !PINNED_BYTEBUFFER
         // Slower versions of Get* for when unsafe code is not allowed.
         public short GetShort(int index)
         {
@@ -490,6 +740,484 @@ namespace FlatBuffers
             Buffer.BlockCopy(ulonghelper, 0, doublehelper, 0, sizeof(double));
             return doublehelper[0];
         }
-#endif // UNSAFE_BYTEBUFFER
+#endif // UNSAFE_BYTEBUFFER || PINNED_BYTEBUFFER
+
+#if PINNED_BYTEBUFFER
+        public unsafe string GetStringUtf8(int offset, int length)
+#else
+        public string GetStringUtf8(int offset, int length) 
+#endif
+        {
+            AssertOffsetAndLength(offset, length);
+            return
+#if PINNED_BYTEBUFFER
+                new string((sbyte*)_bufferPtr.ToPointer(), offset, length, Encoding.UTF8);
+#else
+                Encoding.UTF8.GetString(_buffer, offset, length);
+#endif
+        }
+
+        public ArraySegment<byte> GetArraySegment(int offset, int length) 
+        {
+            AssertOffsetAndLength(offset, length);
+            byte[] buffer = _buffer;
+#if PINNED_BYTEBUFFER
+            if (buffer == null) 
+            {
+                buffer = new byte[length];
+                CopyTo(offset, buffer, 0, length);
+            }
+#endif
+            return new ArraySegment<byte>(buffer, offset, length);
+        }
+
+        #region CopyFrom Overloads
+
+        public void CopyFrom(byte[] src, int srcOffset, int dstOffset, int count) 
+        {
+            int length = sizeof(byte) * count;
+#if PINNED_BYTEBUFFER
+            AssertOffsetAndLength(dstOffset, length);
+            Marshal.Copy(src, srcOffset, _bufferPtr + dstOffset, count);
+#else
+            Buffer.BlockCopy(src, srcOffset, _buffer, dstOffset, length);
+#endif
+        }
+
+        public void CopyFrom(sbyte[] src, int srcOffset, int dstOffset, int count) 
+        {
+            CopyFrom((byte[])(Array)src, srcOffset, dstOffset, count);
+        }
+
+#if UNSAFE_BYTEBUFFER || PINNED_BYTEBUFFER
+        public unsafe void CopyFrom(bool[] src, int srcOffset, int dstOffset, int count)
+#else
+        public void CopyFrom(bool[] src, int srcOffset, int dstOffset, int count)
+#endif
+        {
+            AssertOffsetAndLength(dstOffset, count);
+            AssertOffsetAndLength(src, srcOffset, count);
+#if PINNED_BYTEBUFFER
+            byte* ptr = (byte*)_bufferPtr.ToPointer();
+#elif UNSAFE_BYTEBUFFER
+            fixed (byte* ptr = _buffer)
+#endif
+            {
+
+                for (int i = 0; i < count; i++, srcOffset++, dstOffset++)
+                {
+#if UNSAFE_BYTEBUFFER || PINNED_BYTEBUFFER
+                    *(ptr + dstOffset) 
+#else
+                    _buffer[dstOffset]
+#endif
+                        = (byte)(src[srcOffset] ? 1 : 0);
+                }
+            }
+        }
+
+        public void CopyFrom(short[] src, int srcOffset, int dstOffset, int count)
+        {
+            int length = sizeof(short) * count;
+#if ASSUME_LITTLE_ENDIAN
+            if (true)
+#else
+            if (BitConverter.IsLittleEndian)
+#endif
+            { 
+#if PINNED_BYTEBUFFER
+                AssertOffsetAndLength(dstOffset, length);
+                Marshal.Copy(src, srcOffset, _bufferPtr + dstOffset, count);
+#else
+                Buffer.BlockCopy(src, srcOffset, _buffer, dstOffset, length);
+#endif
+            }
+            else 
+            {
+                AssertOffsetAndLength(dstOffset, length);
+                AssertOffsetAndLength(src, srcOffset, count);
+                for (int i = 0; i < count; i++, srcOffset++, dstOffset += sizeof(short)) 
+                {
+                    PutShort(dstOffset, src[srcOffset]);
+                }
+            }
+        }
+
+        public void CopyFrom(ushort[] src, int srcOffset, int dstOffset, int count)
+        {
+            CopyFrom((short[])(Array)src, srcOffset, dstOffset, count);
+        }
+
+        public void CopyFrom(int[] src, int srcOffset, int dstOffset, int count)
+        {
+            int length = sizeof(int) * count;
+#if ASSUME_LITTLE_ENDIAN
+            if (true)
+#else
+            if (BitConverter.IsLittleEndian)
+#endif
+            {
+#if PINNED_BYTEBUFFER
+                AssertOffsetAndLength(dstOffset, length);
+                Marshal.Copy(src, srcOffset, _bufferPtr + dstOffset, count);
+#else
+                Buffer.BlockCopy(src, srcOffset, _buffer, dstOffset, length);
+#endif
+            } 
+            else 
+            {
+                AssertOffsetAndLength(dstOffset, length);
+                AssertOffsetAndLength(src, srcOffset, count);
+                for (int i = 0; i < count; i++, srcOffset++, dstOffset += sizeof(int)) 
+                {
+                    PutInt(dstOffset, src[srcOffset]);
+                }
+            }
+        }
+
+        public void CopyFrom(uint[] src, int srcOffset, int dstOffset, int count)
+        {
+            CopyFrom((int[])(Array)src, srcOffset, dstOffset, count);
+        }
+
+        public void CopyFrom(long[] src, int srcOffset, int dstOffset, int count)
+        {
+            int length = sizeof(long) * count;
+#if ASSUME_LITTLE_ENDIAN
+            if (true)
+#else
+            if (BitConverter.IsLittleEndian)
+#endif
+            {
+#if PINNED_BYTEBUFFER
+                AssertOffsetAndLength(dstOffset, length);
+                Marshal.Copy(src, srcOffset, _bufferPtr + dstOffset, count);
+#else
+                Buffer.BlockCopy(src, srcOffset, _buffer, dstOffset, length);
+#endif
+            } 
+            else 
+            {
+                AssertOffsetAndLength(dstOffset, length);
+                AssertOffsetAndLength(src, srcOffset, count);
+                for (int i = 0; i < count; i++, srcOffset++, dstOffset += sizeof(long)) 
+                {
+                    PutLong(dstOffset, src[srcOffset]);
+                }
+            }
+        }
+
+        public void CopyFrom(ulong[] src, int srcOffset, int dstOffset, int count) 
+        {
+            CopyFrom((long[])(Array)src, srcOffset, dstOffset, count);
+        }
+
+        public void CopyFrom(float[] src, int srcOffset, int dstOffset, int count)
+        {
+            int length = sizeof(float) * count;
+#if ASSUME_LITTLE_ENDIAN
+            if (true)
+#else
+            if (BitConverter.IsLittleEndian)
+#endif
+            {
+#if PINNED_BYTEBUFFER
+                AssertOffsetAndLength(dstOffset, length);
+                Marshal.Copy(src, srcOffset, _bufferPtr + dstOffset, count);
+#else
+                Buffer.BlockCopy(src, srcOffset, _buffer, dstOffset, length);
+#endif
+            }
+            else 
+            {
+                AssertOffsetAndLength(dstOffset, length);
+                AssertOffsetAndLength(src, srcOffset, count);
+                for (int i = 0; i < count; i++, srcOffset++, dstOffset += sizeof(float))
+                {
+                    PutFloat(dstOffset, src[srcOffset]);
+                }
+            }
+        }
+
+        public void CopyFrom(double[] src, int srcOffset, int dstOffset, int count)
+        {
+            int length = sizeof(double) * count;
+#if ASSUME_LITTLE_ENDIAN
+            if (true)
+#else
+            if (BitConverter.IsLittleEndian)
+#endif
+            {
+#if PINNED_BYTEBUFFER
+                AssertOffsetAndLength(dstOffset, length);
+                Marshal.Copy(src, srcOffset, _bufferPtr + dstOffset, count);
+#else
+                Buffer.BlockCopy(src, srcOffset, _buffer, dstOffset, length);
+#endif
+            } 
+            else 
+            {
+                AssertOffsetAndLength(dstOffset, length);
+                AssertOffsetAndLength(src, srcOffset, count);
+                for (int i = 0; i < count; i++, srcOffset++, dstOffset += sizeof(double)) 
+                {
+                    PutDouble(dstOffset, src[srcOffset]);
+                }
+            }
+        }
+
+        public void CopyFrom(ByteBuffer src, int srcOffset, int dstOffset, int count) 
+        {
+#if PINNED_BYTEBUFFER
+            if (_buffer == null || src._buffer == null) 
+            {
+                if (_buffer != null)
+                {
+                    src.AssertOffsetAndLength(srcOffset, count);
+                    Marshal.Copy(src._bufferPtr + srcOffset, _buffer, dstOffset, count);
+                }
+                else if (src._buffer != null)
+                {
+                    AssertOffsetAndLength(dstOffset, count);
+                    Marshal.Copy(src._buffer, srcOffset, _bufferPtr + dstOffset, count);
+                }
+                else 
+                {
+                    AssertOffsetAndLength(dstOffset, count);
+                    src.AssertOffsetAndLength(srcOffset, count);
+                    Memmove(_bufferPtr + dstOffset, src._bufferPtr + srcOffset, count);
+                }
+                return;
+            }
+#endif
+            Buffer.BlockCopy(src._buffer, srcOffset, _buffer, dstOffset, count);
+        }
+
+        #endregion
+
+        #region CopyTo Overloads
+
+        public void CopyTo(int srcOffset, byte[] dst, int dstOffset, int count) 
+        {
+            int length = sizeof(byte) * count;
+#if PINNED_BYTEBUFFER
+            AssertOffsetAndLength(srcOffset, length);
+            Marshal.Copy(_bufferPtr + srcOffset, dst, dstOffset, count);
+#else
+            Buffer.BlockCopy(_buffer, srcOffset, dst, dstOffset, length);
+#endif
+        }
+
+        public void CopyTo(int srcOffset, sbyte[] dst, int dstOffset, int count)
+        {
+            CopyTo(srcOffset, (byte[])(Array)dst, dstOffset, count);
+        }
+
+#if UNSAFE_BYTEBUFFER || PINNED_BYTEBUFFER
+        public unsafe void CopyTo(int srcOffset, bool[] dst, int dstOffset, int count)
+#else
+        public void CopyTo(int srcOffset, bool[] dst, int dstOffset, int count)
+#endif
+        {
+            AssertOffsetAndLength(srcOffset, count);
+            AssertOffsetAndLength(dst, dstOffset, count);
+#if PINNED_BYTEBUFFER
+            byte* ptr = (byte*)_bufferPtr.ToPointer();
+#elif UNSAFE_BYTEBUFFER
+            fixed (byte* ptr = _buffer)
+#endif
+            {
+
+                for (int i = 0; i < count; i++, srcOffset++, dstOffset++)
+                {
+                    dst[dstOffset] =
+#if UNSAFE_BYTEBUFFER || PINNED_BYTEBUFFER
+                        *(ptr + srcOffset)
+#else
+                        _buffer[srcOffset]
+#endif
+                            > 0;
+                }
+            }
+        }
+
+        public void CopyTo(int srcOffset, short[] dst, int dstOffset, int count)
+        {
+            int length = sizeof(short) * count;
+#if ASSUME_LITTLE_ENDIAN
+            if (true)
+#else
+            if (BitConverter.IsLittleEndian)
+#endif
+            { 
+#if PINNED_BYTEBUFFER
+                AssertOffsetAndLength(srcOffset, length);
+                Marshal.Copy(_bufferPtr + srcOffset, dst, dstOffset, count);
+#else
+                Buffer.BlockCopy(_buffer, srcOffset, dst, dstOffset, length);
+#endif
+            }
+            else 
+            {
+                AssertOffsetAndLength(srcOffset, length);
+                AssertOffsetAndLength(dst, dstOffset, count);
+                for (int i = 0; i < count; i++, srcOffset += sizeof(short), dstOffset++) 
+                {
+                    dst[dstOffset] = GetShort(srcOffset);
+                }
+            }
+        }
+
+        public void CopyTo(int srcOffset, ushort[] dst, int dstOffset, int count)
+        {
+            CopyTo(srcOffset, (short[])(Array)dst, dstOffset, count);
+        }
+
+        public void CopyTo(int srcOffset, int[] dst, int dstOffset, int count)
+        {
+            int length = sizeof(int) * count;
+#if ASSUME_LITTLE_ENDIAN
+            if (true)
+#else
+            if (BitConverter.IsLittleEndian)
+#endif
+            {
+#if PINNED_BYTEBUFFER
+                AssertOffsetAndLength(srcOffset, length);
+                Marshal.Copy(_bufferPtr + srcOffset, dst, dstOffset, count);
+#else
+                Buffer.BlockCopy(_buffer, srcOffset, dst, dstOffset, length);
+#endif
+            } 
+            else 
+            {
+                AssertOffsetAndLength(srcOffset, length);
+                AssertOffsetAndLength(dst, dstOffset, count);
+                for (int i = 0; i < count; i++, srcOffset += sizeof(int), dstOffset++) 
+                {
+                    dst[dstOffset] = GetInt(srcOffset);
+                }
+            }
+        }
+
+        public void CopyTo(int srcOffset, uint[] dst, int dstOffset, int count)
+        {
+            CopyTo(srcOffset, (int[])(Array)dst, dstOffset, count);
+        }
+
+        public void CopyTo(int srcOffset, long[] dst, int dstOffset, int count)
+        {
+            int length = sizeof(long) * count;
+#if ASSUME_LITTLE_ENDIAN
+            if (true)
+#else
+            if (BitConverter.IsLittleEndian)
+#endif
+            {
+#if PINNED_BYTEBUFFER
+                AssertOffsetAndLength(srcOffset, length);
+                Marshal.Copy(_bufferPtr + srcOffset, dst, dstOffset, count);
+#else
+                Buffer.BlockCopy(_buffer, srcOffset, dst, dstOffset, length);
+#endif
+            } 
+            else 
+            {
+                AssertOffsetAndLength(srcOffset, length);
+                AssertOffsetAndLength(dst, dstOffset, count);
+                for (int i = 0; i < count; i++, srcOffset += sizeof(long), dstOffset++) 
+                {
+                    dst[dstOffset] = GetLong(srcOffset);
+                }
+            }
+        }
+
+        public void CopyTo(int srcOffset, ulong[] dst, int dstOffset, int count)
+        {
+            CopyTo(srcOffset, (long[])(Array)dst, dstOffset, count);
+        }
+
+        public void CopyTo(int srcOffset, float[] dst, int dstOffset, int count)
+        {
+            int length = sizeof(float) * count;
+#if ASSUME_LITTLE_ENDIAN
+            if (true)
+#else
+            if (BitConverter.IsLittleEndian)
+#endif
+            {
+#if PINNED_BYTEBUFFER
+                AssertOffsetAndLength(srcOffset, length);
+                Marshal.Copy(_bufferPtr + srcOffset, dst, dstOffset, count);
+#else
+                Buffer.BlockCopy(_buffer, srcOffset, dst, dstOffset, length);
+#endif
+            } 
+            else 
+            {
+                AssertOffsetAndLength(srcOffset, length);
+                AssertOffsetAndLength(dst, dstOffset, count);
+                for (int i = 0; i < count; i++, srcOffset += sizeof(float), dstOffset++) 
+                {
+                    dst[dstOffset] = GetFloat(srcOffset);
+                }
+            }
+        }
+
+        public void CopyTo(int srcOffset, double[] dst, int dstOffset, int count)
+        {
+            int length = sizeof(double) * count;
+#if ASSUME_LITTLE_ENDIAN
+            if (true)
+#else
+            if (BitConverter.IsLittleEndian)
+#endif
+            {
+#if PINNED_BYTEBUFFER
+                AssertOffsetAndLength(srcOffset, length);
+                Marshal.Copy(_bufferPtr + srcOffset, dst, dstOffset, count);
+#else
+                Buffer.BlockCopy(_buffer, srcOffset, dst, dstOffset, length);
+#endif
+            } 
+            else 
+            {
+                AssertOffsetAndLength(srcOffset, length);
+                AssertOffsetAndLength(dst, dstOffset, count);
+                for (int i = 0; i < count; i++, srcOffset += sizeof(double), dstOffset++) 
+                {
+                    dst[dstOffset] = GetDouble(srcOffset);
+                }
+            }
+        }
+
+        public void CopyTo(int srcOffset, ByteBuffer dst, int dstOffset, int count) 
+        {
+#if PINNED_BYTEBUFFER
+            if (_buffer == null || dst._buffer == null) 
+            {
+                if (_buffer != null) 
+                {
+                    dst.AssertOffsetAndLength(dstOffset, count);
+                    Marshal.Copy(_buffer, srcOffset, dst._bufferPtr + dstOffset, count);
+                }
+                else if (dst._buffer != null)
+                {
+                    AssertOffsetAndLength(srcOffset, count);
+                    Marshal.Copy(_bufferPtr + srcOffset, dst._buffer, dstOffset, count);
+                }
+                else
+                {
+                    AssertOffsetAndLength(srcOffset, count);
+                    dst.AssertOffsetAndLength(dstOffset, count);
+                    Memmove(dst._bufferPtr + dstOffset, _bufferPtr + srcOffset, count);
+                }
+                return;
+            }
+#endif
+            Buffer.BlockCopy(_buffer, srcOffset, dst._buffer, dstOffset, count);
+        }
+
+        #endregion
     }
 }
