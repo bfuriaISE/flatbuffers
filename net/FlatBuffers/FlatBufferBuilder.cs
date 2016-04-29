@@ -558,6 +558,19 @@ namespace FlatBuffers
         }
 
         /// <summary>
+        /// Create a vector of bytes using <paramref name="byteBufferSegment"/> as the source
+        /// </summary>
+        /// <param name="byteBufferSegment">source byte buffer segment</param>
+        /// <returns>
+        /// The offset in the flatbuffer where the vector starts.
+        /// </returns>
+        public VectorOffset CreateByteVector(ByteBufferSegment byteBufferSegment) {
+          return CreateByteVector(byteBufferSegment.ByteBuffer,
+                                  byteBufferSegment.Offset,
+                                  byteBufferSegment.Count);
+        }
+
+        /// <summary>
         /// Create a vector of sbytes using <paramref name="buffer"/> as the source
         /// </summary>
         /// <param name="buffer">source sbyte buffer</param>
