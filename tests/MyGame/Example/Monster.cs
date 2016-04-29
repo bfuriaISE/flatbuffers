@@ -10,6 +10,8 @@ using FlatBuffers;
 public sealed class Monster : Table {
   public static Monster GetRootAsMonster(ByteBuffer _bb) { return GetRootAsMonster(_bb, new Monster()); }
   public static Monster GetRootAsMonster(ByteBuffer _bb, Monster obj) { return (obj.__init(_bb.GetInt(_bb.Position) + _bb.Position, _bb)); }
+  public static Monster GetRootAsMonster(ByteBufferSegment bbs) { return GetRootAsMonster(bbs, new Monster()); }
+  public static Monster GetRootAsMonster(ByteBufferSegment bbs, Monster obj) { return (obj.__init(bbs.ByteBuffer.GetInt(bbs.Offset) + bbs.Offset, bbs.ByteBuffer)); }
   public static bool MonsterBufferHasIdentifier(ByteBuffer _bb) { return __has_identifier(_bb, "MONS"); }
   public Monster __init(int _i, ByteBuffer _bb) { bb_pos = _i; bb = _bb; return this; }
 
@@ -21,9 +23,11 @@ public sealed class Monster : Table {
   public bool MutateHp(short hp) { int o = __offset(8); if (o != 0) { bb.PutShort(o + bb_pos, hp); return true; } else { return false; } }
   public string Name { get { int o = __offset(10); return o != 0 ? __string(o + bb_pos) : null; } }
   public ArraySegment<byte>? GetNameBytes() { return __vector_as_arraysegment(10); }
+  public ByteBufferSegment? GetNameBufferSegment() { return __vector_as_bytebuffersegment(10); }
   public byte GetInventory(int j) { int o = __offset(14); return o != 0 ? bb.Get(__vector(o) + j * 1) : (byte)0; }
   public int InventoryLength { get { int o = __offset(14); return o != 0 ? __vector_len(o) : 0; } }
   public ArraySegment<byte>? GetInventoryBytes() { return __vector_as_arraysegment(14); }
+  public ByteBufferSegment? GetInventoryBufferSegment() { return __vector_as_bytebuffersegment(14); }
   public bool MutateInventory(int j, byte inventory) { int o = __offset(14); if (o != 0) { bb.Put(__vector(o) + j * 1, inventory); return true; } else { return false; } }
   public Color Color { get { int o = __offset(16); return o != 0 ? (Color)bb.GetSbyte(o + bb_pos) : Color.Blue; } }
   public bool MutateColor(Color color) { int o = __offset(16); if (o != 0) { bb.PutSbyte(o + bb_pos, (sbyte)color); return true; } else { return false; } }
@@ -45,6 +49,7 @@ public sealed class Monster : Table {
   public byte GetTestnestedflatbuffer(int j) { int o = __offset(30); return o != 0 ? bb.Get(__vector(o) + j * 1) : (byte)0; }
   public int TestnestedflatbufferLength { get { int o = __offset(30); return o != 0 ? __vector_len(o) : 0; } }
   public ArraySegment<byte>? GetTestnestedflatbufferBytes() { return __vector_as_arraysegment(30); }
+  public ByteBufferSegment? GetTestnestedflatbufferBufferSegment() { return __vector_as_bytebuffersegment(30); }
   public Monster TestnestedflatbufferAsMonster() { return GetTestnestedflatbufferAsMonster(new Monster()); }
   public Monster GetTestnestedflatbufferAsMonster(Monster obj) { int o = __offset(30); return o != 0 ? obj.__init(__indirect(__vector(o)), bb) : null; }
   public bool MutateTestnestedflatbuffer(int j, byte testnestedflatbuffer) { int o = __offset(30); if (o != 0) { bb.Put(__vector(o) + j * 1, testnestedflatbuffer); return true; } else { return false; } }
@@ -71,36 +76,44 @@ public sealed class Monster : Table {
   public bool GetTestarrayofbools(int j) { int o = __offset(52); return o != 0 ? 0!=bb.Get(__vector(o) + j * 1) : false; }
   public int TestarrayofboolsLength { get { int o = __offset(52); return o != 0 ? __vector_len(o) : 0; } }
   public ArraySegment<byte>? GetTestarrayofboolsBytes() { return __vector_as_arraysegment(52); }
+  public ByteBufferSegment? GetTestarrayofboolsBufferSegment() { return __vector_as_bytebuffersegment(52); }
   public bool MutateTestarrayofbools(int j, bool testarrayofbools) { int o = __offset(52); if (o != 0) { bb.Put(__vector(o) + j * 1, (byte)(testarrayofbools ? 1 : 0)); return true; } else { return false; } }
   public float Testf { get { int o = __offset(54); return o != 0 ? bb.GetFloat(o + bb_pos) : (float)3.14159f; } }
   public bool MutateTestf(float testf) { int o = __offset(54); if (o != 0) { bb.PutFloat(o + bb_pos, testf); return true; } else { return false; } }
   public byte GetTestarrayofbytes(int j) { int o = __offset(56); return o != 0 ? bb.Get(__vector(o) + j * 1) : (byte)0; }
   public int TestarrayofbytesLength { get { int o = __offset(56); return o != 0 ? __vector_len(o) : 0; } }
   public ArraySegment<byte>? GetTestarrayofbytesBytes() { return __vector_as_arraysegment(56); }
+  public ByteBufferSegment? GetTestarrayofbytesBufferSegment() { return __vector_as_bytebuffersegment(56); }
   public bool MutateTestarrayofbytes(int j, byte testarrayofbytes) { int o = __offset(56); if (o != 0) { bb.Put(__vector(o) + j * 1, testarrayofbytes); return true; } else { return false; } }
   public bool GetTestarrayofbools1(int j) { int o = __offset(58); return o != 0 ? 0!=bb.Get(__vector(o) + j * 1) : false; }
   public int Testarrayofbools1Length { get { int o = __offset(58); return o != 0 ? __vector_len(o) : 0; } }
   public ArraySegment<byte>? GetTestarrayofbools1Bytes() { return __vector_as_arraysegment(58); }
+  public ByteBufferSegment? GetTestarrayofbools1BufferSegment() { return __vector_as_bytebuffersegment(58); }
   public bool MutateTestarrayofbools1(int j, bool testarrayofbools1) { int o = __offset(58); if (o != 0) { bb.Put(__vector(o) + j * 1, (byte)(testarrayofbools1 ? 1 : 0)); return true; } else { return false; } }
   public short GetTestarrayofshorts(int j) { int o = __offset(60); return o != 0 ? bb.GetShort(__vector(o) + j * 2) : (short)0; }
   public int TestarrayofshortsLength { get { int o = __offset(60); return o != 0 ? __vector_len(o) : 0; } }
   public ArraySegment<byte>? GetTestarrayofshortsBytes() { return __vector_as_arraysegment(60); }
+  public ByteBufferSegment? GetTestarrayofshortsBufferSegment() { return __vector_as_bytebuffersegment(60); }
   public bool MutateTestarrayofshorts(int j, short testarrayofshorts) { int o = __offset(60); if (o != 0) { bb.PutShort(__vector(o) + j * 2, testarrayofshorts); return true; } else { return false; } }
   public int GetTestarrayofints(int j) { int o = __offset(62); return o != 0 ? bb.GetInt(__vector(o) + j * 4) : (int)0; }
   public int TestarrayofintsLength { get { int o = __offset(62); return o != 0 ? __vector_len(o) : 0; } }
   public ArraySegment<byte>? GetTestarrayofintsBytes() { return __vector_as_arraysegment(62); }
+  public ByteBufferSegment? GetTestarrayofintsBufferSegment() { return __vector_as_bytebuffersegment(62); }
   public bool MutateTestarrayofints(int j, int testarrayofints) { int o = __offset(62); if (o != 0) { bb.PutInt(__vector(o) + j * 4, testarrayofints); return true; } else { return false; } }
   public long GetTestarrayoflongs(int j) { int o = __offset(64); return o != 0 ? bb.GetLong(__vector(o) + j * 8) : (long)0; }
   public int TestarrayoflongsLength { get { int o = __offset(64); return o != 0 ? __vector_len(o) : 0; } }
   public ArraySegment<byte>? GetTestarrayoflongsBytes() { return __vector_as_arraysegment(64); }
+  public ByteBufferSegment? GetTestarrayoflongsBufferSegment() { return __vector_as_bytebuffersegment(64); }
   public bool MutateTestarrayoflongs(int j, long testarrayoflongs) { int o = __offset(64); if (o != 0) { bb.PutLong(__vector(o) + j * 8, testarrayoflongs); return true; } else { return false; } }
   public float GetTestarrayoffloats(int j) { int o = __offset(66); return o != 0 ? bb.GetFloat(__vector(o) + j * 4) : (float)0; }
   public int TestarrayoffloatsLength { get { int o = __offset(66); return o != 0 ? __vector_len(o) : 0; } }
   public ArraySegment<byte>? GetTestarrayoffloatsBytes() { return __vector_as_arraysegment(66); }
+  public ByteBufferSegment? GetTestarrayoffloatsBufferSegment() { return __vector_as_bytebuffersegment(66); }
   public bool MutateTestarrayoffloats(int j, float testarrayoffloats) { int o = __offset(66); if (o != 0) { bb.PutFloat(__vector(o) + j * 4, testarrayoffloats); return true; } else { return false; } }
   public double GetTestarrayofdoubles(int j) { int o = __offset(68); return o != 0 ? bb.GetDouble(__vector(o) + j * 8) : (double)0; }
   public int TestarrayofdoublesLength { get { int o = __offset(68); return o != 0 ? __vector_len(o) : 0; } }
   public ArraySegment<byte>? GetTestarrayofdoublesBytes() { return __vector_as_arraysegment(68); }
+  public ByteBufferSegment? GetTestarrayofdoublesBufferSegment() { return __vector_as_bytebuffersegment(68); }
   public bool MutateTestarrayofdoubles(int j, double testarrayofdoubles) { int o = __offset(68); if (o != 0) { bb.PutDouble(__vector(o) + j * 8, testarrayofdoubles); return true; } else { return false; } }
 
   public static void StartMonster(FlatBufferBuilder builder) { builder.StartObject(33); }

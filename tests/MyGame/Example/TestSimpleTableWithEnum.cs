@@ -9,6 +9,8 @@ using FlatBuffers;
 public partial class TestSimpleTableWithEnum : Table {
   public static TestSimpleTableWithEnum GetRootAsTestSimpleTableWithEnum(ByteBuffer _bb) { return GetRootAsTestSimpleTableWithEnum(_bb, new TestSimpleTableWithEnum()); }
   public static TestSimpleTableWithEnum GetRootAsTestSimpleTableWithEnum(ByteBuffer _bb, TestSimpleTableWithEnum obj) { return (obj.__init(_bb.GetInt(_bb.Position) + _bb.Position, _bb)); }
+  public static TestSimpleTableWithEnum GetRootAsTestSimpleTableWithEnum(ByteBufferSegment bbs) { return GetRootAsTestSimpleTableWithEnum(bbs, new TestSimpleTableWithEnum()); }
+  public static TestSimpleTableWithEnum GetRootAsTestSimpleTableWithEnum(ByteBufferSegment bbs, TestSimpleTableWithEnum obj) { return (obj.__init(bbs.ByteBuffer.GetInt(bbs.Offset) + bbs.Offset, bbs.ByteBuffer)); }
   public TestSimpleTableWithEnum __init(int _i, ByteBuffer _bb) { bb_pos = _i; bb = _bb; return this; }
 
   public Color Color { get { int o = __offset(4); return o != 0 ? (Color)bb.GetSbyte(o + bb_pos) : Color.Green; } }

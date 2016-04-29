@@ -692,6 +692,27 @@ static void GenStruct(const LanguageParameters &lang, const Parser &parser,
     code += ") + _bb.";
     code += lang.get_bb_position;
     code += ", _bb)); }\n";
+
+    if (lang.language == IDLOptions::kCSharp) {
+      std::string typeName = "ByteBufferSegment";
+      std::string paramName = "bbs";
+      std::string paramDecl = typeName + " " + paramName;
+
+      // create convenience method that doesn't require an existing object
+      code += method_signature + "(" + paramDecl + ") ";
+      code += "{ return " + method_name + "(" + paramName;
+      code += ", new " + struct_def.name + "()); }\n";
+
+      std::string byteBuffer = paramName + ".ByteBuffer";
+      std::string segmentOffset = paramName + ".Offset";
+
+      // create method that allows object reuse
+      code += method_signature + "(" + paramDecl + ", " + struct_def.name + " obj) { ";
+      code += "return (obj.__init(" + byteBuffer + "." + FunctionStart(lang, 'G');
+      code += "etInt(" + segmentOffset + ") + " + segmentOffset;
+      code += ", " + byteBuffer + ")); }\n";
+    }
+
     if (parser.root_struct_def_ == &struct_def) {
       if (parser.file_identifier_.length()) {
         // Check if a buffer has the identifier.
@@ -879,6 +900,11 @@ static void GenStruct(const LanguageParameters &lang, const Parser &parser,
           code += "  public ArraySegment<byte>? Get";
           code += MakeCamel(field.name, lang.first_camel_upper);
           code += "Bytes() { return __vector_as_arraysegment(";
+          code += NumToString(field.value.offset);
+          code += "); }\n";
+          code += "  public ByteBufferSegment? Get";
+          code += MakeCamel(field.name, lang.first_camel_upper);
+          code += "BufferSegment() { return __vector_as_bytebuffersegment(";
           code += NumToString(field.value.offset);
           code += "); }\n";
           break;

@@ -82,6 +82,20 @@ namespace FlatBuffers
             return bb.GetArraySegment(pos, len);
         }
 
+        // Get the data of a vector whoses offset is stored at "offset" in this object as an
+        // ByteBufferSegment. If the vector is not present in the ByteBuffer,
+        // then a null value will be returned.
+        protected ByteBufferSegment? __vector_as_bytebuffersegment(int offset) {
+          var o = this.__offset(offset);
+          if (0 == o) {
+            return null;
+          }
+
+          var pos = this.__vector(o);
+          var len = this.__vector_len(o);
+          return new ByteBufferSegment(bb, pos, len);
+        }
+
         // Initialize any Table-derived type to point to the union at the given offset.
         protected TTable __union<TTable>(TTable t, int offset) where TTable : Table
         {
