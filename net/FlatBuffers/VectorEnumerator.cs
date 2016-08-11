@@ -15,6 +15,13 @@ namespace FlatBuffers {
       m_current = default(TItem);
     }
 
+    public VectorEnumerator(ref TVector vector) {
+      m_vector = vector;
+      m_index = 0;
+      m_length = -1;
+      m_current = default(TItem);
+    }
+
     public TItem Current {
       get { return m_current; }
     }
@@ -53,6 +60,13 @@ namespace FlatBuffers {
       where TVector : IFieldGroupVector<TItem> {
 
     public FieldGroupVectorEnumerator(TVector vector) {
+      m_vector = vector;
+      m_index = 0;
+      m_length = -1;
+      m_current = default(TItem);
+    }
+
+    public FieldGroupVectorEnumerator(ref TVector vector) {
       m_vector = vector;
       m_index = 0;
       m_length = -1;

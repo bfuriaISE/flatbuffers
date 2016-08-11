@@ -12,13 +12,13 @@ public struct Vec3Vector : IFieldGroupVector<Vec3Struct> {
   public Vec3Vector(BufferPosition vectorPosition) { _vectorAccessor = new VectorAccessor(ref vectorPosition); }
   public Vec3Vector(ref BufferPosition vectorPosition) { _vectorAccessor = new VectorAccessor(ref vectorPosition); }
 
-  public VectorAccessor VectorAccessor{ get { return _vectorAccessor; } }
+  public VectorAccessor VectorAccessor { get { return _vectorAccessor; } }
   public int Length { get { return _vectorAccessor.VectorDataLength; } }
   public ArraySegment<byte> GetAsArraySegment() { return _vectorAccessor.GetVectorAsArraySegment(); }
   public void GetAsArraySegment(out ArraySegment<byte> arraySegment) { _vectorAccessor.GetVectorAsArraySegment(out arraySegment); }
   public ByteBufferSegment GetAsByteBufferSegment() { return _vectorAccessor.GetVectorAsByteBufferSegment(); }
   public void GetAsByteBufferSegment(out ByteBufferSegment byteBufferSegment) { _vectorAccessor.GetVectorAsByteBufferSegment(out byteBufferSegment); }
-  public FieldGroupVectorEnumerator<Vec3Struct, Vec3Vector> GetEnumerator() { return new FieldGroupVectorEnumerator<Vec3Struct, Vec3Vector>(this); }
+  public FieldGroupVectorEnumerator<Vec3Struct, Vec3Vector> GetEnumerator() { return new FieldGroupVectorEnumerator<Vec3Struct, Vec3Vector>(ref this); }
   System.Collections.Generic.IEnumerator<Vec3Struct> System.Collections.Generic.IEnumerable<Vec3Struct>.GetEnumerator() { return GetEnumerator(); }
   System.Collections.IEnumerator System.Collections.IEnumerable.GetEnumerator() { return GetEnumerator(); }
 

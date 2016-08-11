@@ -147,7 +147,7 @@ namespace FlatBuffers {
       return charVectorAccessor.GetVectorAsByteBufferSegment();
     }
 
-    public bool TryGetStringFieldValueAsArraySegment(int fieldVtableOffset,
+    public bool TryGetStringFieldValueAsByteBufferSegment(int fieldVtableOffset,
                                                      out ByteBufferSegment bbSeg) {
       int fieldOffset = GetFieldRelOffset(fieldVtableOffset);
       if (fieldOffset == 0) {
@@ -313,9 +313,9 @@ namespace FlatBuffers {
     }
 
     public static void CreateFromOffset(ByteBuffer byteBuffer,
-                                        int offset,
+                                        int offsetOffset,
                                         out TableAccessor tableAccessor) {
-      tableAccessor = new TableAccessor(byteBuffer, offset, default(GetAsRootTag));
+      tableAccessor = new TableAccessor(byteBuffer, offsetOffset, default(GetAsRootTag));
     }
 
     public static void CreateFromOffset(ByteBuffer byteBuffer,

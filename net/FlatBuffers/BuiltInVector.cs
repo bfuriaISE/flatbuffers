@@ -50,7 +50,7 @@ namespace FlatBuffers {
     }
 
     public VectorEnumerator<byte, ByteVector> GetEnumerator() {
-      return new VectorEnumerator<byte, ByteVector>(this);
+      return new VectorEnumerator<byte, ByteVector>(ref this);
     } 
     
     IEnumerator<byte> IEnumerable<byte>.GetEnumerator() {
@@ -109,7 +109,7 @@ namespace FlatBuffers {
     }
 
     public VectorEnumerator<sbyte, SbyteVector> GetEnumerator() {
-      return new VectorEnumerator<sbyte, SbyteVector>(this);
+      return new VectorEnumerator<sbyte, SbyteVector>(ref this);
     }
 
     IEnumerator<sbyte> IEnumerable<sbyte>.GetEnumerator() {
@@ -168,7 +168,7 @@ namespace FlatBuffers {
     }
 
     public VectorEnumerator<bool, BoolVector> GetEnumerator() {
-      return new VectorEnumerator<bool, BoolVector>(this);
+      return new VectorEnumerator<bool, BoolVector>(ref this);
     }
 
     IEnumerator<bool> IEnumerable<bool>.GetEnumerator() {
@@ -227,7 +227,7 @@ namespace FlatBuffers {
     }
 
     public VectorEnumerator<short, ShortVector> GetEnumerator() {
-      return new VectorEnumerator<short, ShortVector>(this);
+      return new VectorEnumerator<short, ShortVector>(ref this);
     }
 
     IEnumerator<short> IEnumerable<short>.GetEnumerator() {
@@ -286,7 +286,7 @@ namespace FlatBuffers {
     }
 
     public VectorEnumerator<ushort, UshortVector> GetEnumerator() {
-      return new VectorEnumerator<ushort, UshortVector>(this);
+      return new VectorEnumerator<ushort, UshortVector>(ref this);
     }
 
     IEnumerator<ushort> IEnumerable<ushort>.GetEnumerator() {
@@ -345,7 +345,7 @@ namespace FlatBuffers {
     }
 
     public VectorEnumerator<int, IntVector> GetEnumerator() {
-      return new VectorEnumerator<int, IntVector>(this);
+      return new VectorEnumerator<int, IntVector>(ref this);
     }
 
     IEnumerator<int> IEnumerable<int>.GetEnumerator() {
@@ -404,7 +404,7 @@ namespace FlatBuffers {
     }
 
     public VectorEnumerator<uint, UintVector> GetEnumerator() {
-      return new VectorEnumerator<uint, UintVector>(this);
+      return new VectorEnumerator<uint, UintVector>(ref this);
     }
 
     IEnumerator<uint> IEnumerable<uint>.GetEnumerator() {
@@ -463,7 +463,7 @@ namespace FlatBuffers {
     }
 
     public VectorEnumerator<long, LongVector> GetEnumerator() {
-      return new VectorEnumerator<long, LongVector>(this);
+      return new VectorEnumerator<long, LongVector>(ref this);
     }
 
     IEnumerator<long> IEnumerable<long>.GetEnumerator() {
@@ -522,7 +522,7 @@ namespace FlatBuffers {
     }
 
     public VectorEnumerator<ulong, UlongVector> GetEnumerator() {
-      return new VectorEnumerator<ulong, UlongVector>(this);
+      return new VectorEnumerator<ulong, UlongVector>(ref this);
     }
 
     IEnumerator<ulong> IEnumerable<ulong>.GetEnumerator() {
@@ -581,7 +581,7 @@ namespace FlatBuffers {
     }
 
     public VectorEnumerator<float, FloatVector> GetEnumerator() {
-      return new VectorEnumerator<float, FloatVector>(this);
+      return new VectorEnumerator<float, FloatVector>(ref this);
     }
 
     IEnumerator<float> IEnumerable<float>.GetEnumerator() {
@@ -640,7 +640,7 @@ namespace FlatBuffers {
     }
 
     public VectorEnumerator<double, DoubleVector> GetEnumerator() {
-      return new VectorEnumerator<double, DoubleVector>(this);
+      return new VectorEnumerator<double, DoubleVector>(ref this);
     }
 
     IEnumerator<double> IEnumerable<double>.GetEnumerator() {
@@ -719,7 +719,7 @@ namespace FlatBuffers {
     }
 
     public VectorEnumerator<string, StringVector> GetEnumerator() {
-      return new VectorEnumerator<string, StringVector>(this);
+      return new VectorEnumerator<string, StringVector>(ref this);
     }
 
     IEnumerator<string> IEnumerable<string>.GetEnumerator() {

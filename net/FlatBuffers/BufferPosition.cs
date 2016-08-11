@@ -231,9 +231,9 @@ namespace FlatBuffers {
 
 
     public static void CreateFromOffset(ByteBuffer byteBuffer,
-                                        int offset,
+                                        int offsetOffset,
                                         out BufferPosition bufferPosition) {
-      bufferPosition = new BufferPosition(byteBuffer, GetAbsoluteOffset(byteBuffer, offset, 0));
+      bufferPosition = new BufferPosition(byteBuffer, GetAbsoluteOffset(byteBuffer, offsetOffset, 0));
     }
 
     public static void CreateFromOffset(ByteBuffer byteBuffer,

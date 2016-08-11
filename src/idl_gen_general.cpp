@@ -1565,7 +1565,7 @@ static void GenVectorCsStruct(const LanguageParameters &lang, const Parser &pars
   code += cons_body + "\n";
   code += "  public " + vector_struct_type_name + "(ref " + cons_param_var_decl_expr + ") ";
   code += cons_body + "\n\n";
-  code += "  public " + vector_accessor_type_name + " " + vector_accessor_type_name + "{ ";
+  code += "  public " + vector_accessor_type_name + " " + vector_accessor_type_name + " { ";
   code += "get { return " + vector_accessor_var_name + "; } }\n";
   code += "  public int Length { get { return " + vector_accessor_var_name
           + ".VectorDataLength; } }\n";
@@ -1586,7 +1586,7 @@ static void GenVectorCsStruct(const LanguageParameters &lang, const Parser &pars
     + vector_struct_type_name + ">";
 
   code += "  public " + enumerator_type_name + " GetEnumerator() { ";
-  code += "return new " + enumerator_type_name + "(this); }\n";
+  code += "return new " + enumerator_type_name + "(ref this); }\n";
   code += "  System.Collections.Generic.IEnumerator<" + return_type_name + "> ";
   code += "System.Collections.Generic.IEnumerable<" + return_type_name + ">.GetEnumerator() { ";
   code += "return GetEnumerator(); }\n";
