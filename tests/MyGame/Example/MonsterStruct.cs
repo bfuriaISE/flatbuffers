@@ -46,8 +46,10 @@ public struct MonsterStruct {
 
   public short Mana { get { return _tableAccessor.GetShortFieldValue(6, 150); } }
   public bool MutateMana(short mana) { return _tableAccessor.MutateShortFieldValue(6, mana); }
+  public bool IsManaSpecified { get { return _tableAccessor.CheckField(6); } }
   public short Hp { get { return _tableAccessor.GetShortFieldValue(8, 100); } }
   public bool MutateHp(short hp) { return _tableAccessor.MutateShortFieldValue(8, hp); }
+  public bool IsHpSpecified { get { return _tableAccessor.CheckField(8); } }
   public string Name { get { return _tableAccessor.GetStringFieldValue(10); } }
   public ArraySegment<byte>? GetNameBytes() { return _tableAccessor.GetStringFieldValueAsArraySegment(10); }
   public ByteBufferSegment? GetNameBufferSegment() { return _tableAccessor.GetStringFieldValueAsByteBufferSegment(10); }
@@ -70,8 +72,10 @@ public struct MonsterStruct {
 
   public Color Color { get { return (Color)_tableAccessor.GetSbyteFieldValue(16, 8); } }
   public bool MutateColor(Color color) { return _tableAccessor.MutateSbyteFieldValue(16, (sbyte)color); }
+  public bool IsColorSpecified { get { return _tableAccessor.CheckField(16); } }
   public Any TestType { get { return (Any)_tableAccessor.GetByteFieldValue(18, 0); } }
   public bool MutateTestType(Any testType) { return _tableAccessor.MutateByteFieldValue(18, (byte)testType); }
+  public bool IsTestTypeSpecified { get { return _tableAccessor.CheckField(18); } }
   public MonsterStruct? TestAsMonster {
     get {
       BufferPosition position;
@@ -231,22 +235,31 @@ public struct MonsterStruct {
 
   public bool Testbool { get { return _tableAccessor.GetBoolFieldValue(34, false); } }
   public bool MutateTestbool(bool testbool) { return _tableAccessor.MutateBoolFieldValue(34, testbool); }
+  public bool IsTestboolSpecified { get { return _tableAccessor.CheckField(34); } }
   public int Testhashs32Fnv1 { get { return _tableAccessor.GetIntFieldValue(36, 0); } }
   public bool MutateTesthashs32Fnv1(int testhashs32Fnv1) { return _tableAccessor.MutateIntFieldValue(36, testhashs32Fnv1); }
+  public bool IsTesthashs32Fnv1Specified { get { return _tableAccessor.CheckField(36); } }
   public uint Testhashu32Fnv1 { get { return _tableAccessor.GetUintFieldValue(38, 0); } }
   public bool MutateTesthashu32Fnv1(uint testhashu32Fnv1) { return _tableAccessor.MutateUintFieldValue(38, testhashu32Fnv1); }
+  public bool IsTesthashu32Fnv1Specified { get { return _tableAccessor.CheckField(38); } }
   public long Testhashs64Fnv1 { get { return _tableAccessor.GetLongFieldValue(40, 0); } }
   public bool MutateTesthashs64Fnv1(long testhashs64Fnv1) { return _tableAccessor.MutateLongFieldValue(40, testhashs64Fnv1); }
+  public bool IsTesthashs64Fnv1Specified { get { return _tableAccessor.CheckField(40); } }
   public ulong Testhashu64Fnv1 { get { return _tableAccessor.GetUlongFieldValue(42, 0); } }
   public bool MutateTesthashu64Fnv1(ulong testhashu64Fnv1) { return _tableAccessor.MutateUlongFieldValue(42, testhashu64Fnv1); }
+  public bool IsTesthashu64Fnv1Specified { get { return _tableAccessor.CheckField(42); } }
   public int Testhashs32Fnv1a { get { return _tableAccessor.GetIntFieldValue(44, 0); } }
   public bool MutateTesthashs32Fnv1a(int testhashs32Fnv1a) { return _tableAccessor.MutateIntFieldValue(44, testhashs32Fnv1a); }
+  public bool IsTesthashs32Fnv1aSpecified { get { return _tableAccessor.CheckField(44); } }
   public uint Testhashu32Fnv1a { get { return _tableAccessor.GetUintFieldValue(46, 0); } }
   public bool MutateTesthashu32Fnv1a(uint testhashu32Fnv1a) { return _tableAccessor.MutateUintFieldValue(46, testhashu32Fnv1a); }
+  public bool IsTesthashu32Fnv1aSpecified { get { return _tableAccessor.CheckField(46); } }
   public long Testhashs64Fnv1a { get { return _tableAccessor.GetLongFieldValue(48, 0); } }
   public bool MutateTesthashs64Fnv1a(long testhashs64Fnv1a) { return _tableAccessor.MutateLongFieldValue(48, testhashs64Fnv1a); }
+  public bool IsTesthashs64Fnv1aSpecified { get { return _tableAccessor.CheckField(48); } }
   public ulong Testhashu64Fnv1a { get { return _tableAccessor.GetUlongFieldValue(50, 0); } }
   public bool MutateTesthashu64Fnv1a(ulong testhashu64Fnv1a) { return _tableAccessor.MutateUlongFieldValue(50, testhashu64Fnv1a); }
+  public bool IsTesthashu64Fnv1aSpecified { get { return _tableAccessor.CheckField(50); } }
   public BoolVector? Testarrayofbools {
     get {
       BufferPosition position;
@@ -266,6 +279,7 @@ public struct MonsterStruct {
 
   public float Testf { get { return _tableAccessor.GetFloatFieldValue(54, 3.14159f); } }
   public bool MutateTestf(float testf) { return _tableAccessor.MutateFloatFieldValue(54, testf); }
+  public bool IsTestfSpecified { get { return _tableAccessor.CheckField(54); } }
   public ByteVector? Testarrayofbytes {
     get {
       BufferPosition position;

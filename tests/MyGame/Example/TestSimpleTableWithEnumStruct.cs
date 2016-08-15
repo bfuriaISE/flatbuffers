@@ -26,6 +26,7 @@ public partial struct TestSimpleTableWithEnumStruct {
 
   public Color Color { get { return (Color)_tableAccessor.GetSbyteFieldValue(4, 2); } }
   public bool MutateColor(Color color) { return _tableAccessor.MutateSbyteFieldValue(4, (sbyte)color); }
+  public bool IsColorSpecified { get { return _tableAccessor.CheckField(4); } }
 
 }
 

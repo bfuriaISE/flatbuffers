@@ -1261,6 +1261,12 @@ static void GenFieldAccessors(const LanguageParameters &lang, const Parser &pars
       if (!struct_def.fixed)
         code += "FieldValue";
       code += "(" + NumToString(value.offset) + ", " + src_cast + param_name + "); }\n";
+
+      if (!struct_def.fixed) {
+        code += "  public bool Is" + method_name + "Specified { get { return ";
+        code += accessor_var_name + ".CheckField(" + NumToString(value.offset);
+        code += "); } }\n";
+      }
     }
   } else {
     std::string out_value_type = "BufferPosition";

@@ -29,8 +29,10 @@ public struct StatStruct {
   public ByteBufferSegment? GetIdBufferSegment() { return _tableAccessor.GetStringFieldValueAsByteBufferSegment(4); }
   public long Val { get { return _tableAccessor.GetLongFieldValue(6, 0); } }
   public bool MutateVal(long val) { return _tableAccessor.MutateLongFieldValue(6, val); }
+  public bool IsValSpecified { get { return _tableAccessor.CheckField(6); } }
   public ushort Count { get { return _tableAccessor.GetUshortFieldValue(8, 0); } }
   public bool MutateCount(ushort count) { return _tableAccessor.MutateUshortFieldValue(8, count); }
+  public bool IsCountSpecified { get { return _tableAccessor.CheckField(8); } }
 
 }
 
