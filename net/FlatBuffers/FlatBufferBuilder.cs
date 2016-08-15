@@ -486,10 +486,10 @@ namespace FlatBuffers
         /// Adds a buffer offset to the Table at index `o` in its vtable using the value `x` and default `d`
         /// </summary>
         /// <param name="o">The index into the vtable</param>
-        /// <param name="x">The value to put into the buffer. If the value is equal to the default
-        /// and <see cref="ForceDefaults"/> is false, the value will be skipped.</param>
-        /// <param name="d">The default value to compare the value against</param>
-        public void AddOffset(int o, int x, int d) { if (ForceDefaults || x != d) { AddOffset(x); Slot(o); } }
+        /// <param name="x">The value to put into the buffer. If the value is equal to the default,
+        /// the value will be skipped.</param>
+        /// <param name="d">The default value to compare the value against. Always 0.</param>
+        public void AddOffset(int o, int x, int d) { if (x != d) { AddOffset(x); Slot(o); } }
         /// @endcond
 
         /// <summary>
