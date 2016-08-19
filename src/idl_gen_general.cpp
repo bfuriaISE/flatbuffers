@@ -1227,10 +1227,22 @@ static void GenFieldAccessors(const LanguageParameters &lang, const Parser &pars
   }
 
   std::string method_name = MakeCamel(accessor_name_root, true);
-  std::string param_name = MakeCamel(accessor_name_root, false);
   std::string method_start = "  public " + return_type + " " + method_name;
   std::string accessor_var_type_name = struct_def.fixed ? "BufferPosition" : "TableAccessor";
   std::string accessor_var_name = struct_def.fixed ? "_bufferPosition" : "_tableAccessor";
+
+  std::string param_name = MakeCamel(accessor_name_root, false);
+  if (IsScalar(type.base_type) || type.base_type == BASE_TYPE_STRING) {
+    param_name += "Value";
+  } else if (type.base_type == BASE_TYPE_VECTOR) {
+    param_name += "Vector";
+  } else {
+    assert(type.struct_def != nullptr);
+    if (type.struct_def->fixed)
+      param_name += "Struct";
+    else
+      param_name += "Table";
+  }
 
   code += method_start + " {";
 
@@ -1387,7 +1399,7 @@ static void GenStructCsStruct(const LanguageParameters &lang, const Parser &pars
     std::string method_name = FunctionStart(lang, 'G') + "etRootAs" + struct_def.name;
     std::string method_signature = "  public static " + csStructName + " " + method_name;
     std::string out_method_signature = "  public static void " + method_name;
-    std::string out_param_name = MakeCamel(struct_def.name, false);
+    std::string out_param_name = MakeCamel(struct_def.name, false) + "Table";
     std::string out_param_decl = ", out " + csStructName + " " + out_param_name;
 
     // create method that uses ByteBuffer Position
@@ -1500,7 +1512,7 @@ static void GenStructCsStruct(const LanguageParameters &lang, const Parser &pars
           auto nested_method_name = MakeCamel(field.name, true) + "As" + nested_type->name;
           auto nested_type_name = WrapInNameSpace(parser, *nested_type) + "Struct";
           std::string nested_try_get_method_name = "TryGet" + nested_method_name;
-          std::string nested_var_name = MakeCamel(field.name, false);
+          std::string nested_var_name = MakeCamel(nested_type->name, false) + "Table";
           std::string nested_var_decl_expr = nested_type_name + " " + nested_var_name;
           std::string vector_pos_var_name = "vectorPosition";
           std::string vector_pos_var_decl = "BufferPosition " + vector_pos_var_name + ";";
