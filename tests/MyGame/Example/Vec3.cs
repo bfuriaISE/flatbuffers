@@ -4,6 +4,7 @@ namespace MyGame.Example
 {
 
 using System;
+using System.Collections.Generic;
 using FlatBuffers;
 
 public sealed class Vec3 : Struct {

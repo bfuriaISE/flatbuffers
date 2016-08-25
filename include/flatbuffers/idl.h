@@ -337,6 +337,7 @@ struct IDLOptions {
   bool generate_all;
   bool skip_unexpected_fields_in_json;
   bool generate_name_strings;
+  bool generate_cs_structs;
 
   // Possible options for the more general generator below.
   enum Language { kJava, kCSharp, kGo, kMAX };
@@ -356,6 +357,7 @@ struct IDLOptions {
       generate_all(false),
       skip_unexpected_fields_in_json(false),
       generate_name_strings(false),
+      generate_cs_structs(false),
       lang(IDLOptions::kJava) {}
 };
 

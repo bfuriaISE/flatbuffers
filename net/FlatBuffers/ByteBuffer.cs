@@ -253,6 +253,11 @@ namespace FlatBuffers
         }
 #endif // !UNSAFE_BYTEBUFFER && !PINNED_BYTEBUFFER
 
+        private static void ThrowOffsetAndLengthAssertionFailed() 
+        {
+            throw new ArgumentOutOfRangeException();
+        }
+
         private void AssertOffsetAndLength(int offset, int length) 
         {
             int bufferLength =
@@ -263,14 +268,18 @@ namespace FlatBuffers
 #endif
             if ((uint)offset > bufferLength ||
                 (uint)length > bufferLength - offset)
-              throw new ArgumentOutOfRangeException();
+            { 
+                ThrowOffsetAndLengthAssertionFailed();
+            }
         }
 
         private static void AssertOffsetAndLength<T>(T[] array, int offset, int count) 
         {
             if ((uint)offset > array.Length ||
-                (uint)count > array.Length - offset)
-              throw new ArgumentOutOfRangeException();
+                (uint)count > array.Length - offset) 
+            { 
+                ThrowOffsetAndLengthAssertionFailed();
+            }
         }
 
 #if PINNED_BYTEBUFFER
@@ -759,16 +768,21 @@ namespace FlatBuffers
 
         public ArraySegment<byte> GetArraySegment(int offset, int length) 
         {
-            AssertOffsetAndLength(offset, length);
-            byte[] buffer = _buffer;
+            ArraySegment<byte> arraySegment;
+            GetArraySegment(offset, length, out arraySegment);
+            return arraySegment;
+        }
+
+        public void GetArraySegment(int offset, int length, out ArraySegment<byte> arraySegment) {
+          AssertOffsetAndLength(offset, length);
+          byte[] buffer = _buffer;
 #if PINNED_BYTEBUFFER
-            if (buffer == null) 
-            {
-                buffer = new byte[length];
-                CopyTo(offset, buffer, 0, length);
-            }
+          if (buffer == null) {
+            buffer = new byte[length];
+            CopyTo(offset, buffer, 0, length);
+          }
 #endif
-            return new ArraySegment<byte>(buffer, offset, length);
+          arraySegment = new ArraySegment<byte>(buffer, offset, length);
         }
 
         #region CopyFrom Overloads

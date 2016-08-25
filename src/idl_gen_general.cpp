@@ -28,12 +28,13 @@ namespace flatbuffers {
 std::string MakeCamel(const std::string &in, bool first) {
   std::string s;
   for (size_t i = 0; i < in.length(); i++) {
-    if (!i && first)
-      s += static_cast<char>(toupper(in[0]));
-    else if (in[i] == '_' && i + 1 < in.length())
+    if (!i && first != (isupper(in[i]) != 0)) {
+      s += static_cast<char>(first ? toupper(in[0]) : tolower(in[0]));
+    } else if (in[i] == '_' && i + 1 < in.length()) {
       s += static_cast<char>(toupper(in[++i]));
-    else
+    } else {
       s += in[i];
+    }
   }
   return s;
 }
@@ -145,7 +146,7 @@ LanguageParameters language_parameters[] = {
     "",
     "Position",
     "Offset",
-    "using System;\nusing FlatBuffers;\n\n",
+    "using System;\nusing System.Collections.Generic;\nusing FlatBuffers;\n\n",
     {
       nullptr,
       "///",
@@ -1098,36 +1099,59 @@ static void GenStruct(const LanguageParameters &lang, const Parser &parser,
         auto alignment = InlineAlignment(vector_type);
         auto elem_size = InlineSize(vector_type);
         if (!IsStruct(vector_type)) {
-          // Generate a method to create a vector from a Java array.
-          code += "  public static " + GenVectorOffsetType(lang) + " " + FunctionStart(lang, 'C') + "reate";
-          code += MakeCamel(field.name);
-          code += "Vector(FlatBufferBuilder builder, ";
-          code += GenTypeBasic(lang, parser, vector_type) + "[] data) ";
-          code += "{ ";
-          if (lang.language == IDLOptions::kCSharp && IsScalar(vector_type.base_type) && !IsEnum(vector_type)) {
-            code += "return builder.Create";
-            code += GenMethod(lang, parser, vector_type);
-            code += "Vector(data, 0, data.Length);";
-          } else {
-            // Generate a method to create a vector from a Java array.
-            code += "builder." + FunctionStart(lang, 'S') + "tartVector(";
-            code += NumToString(elem_size);
-            code += ", data." + FunctionStart(lang, 'L') + "ength, ";
-            code += NumToString(alignment);
-            code += "); for (int i = data.";
-            code += FunctionStart(lang, 'L') + "ength - 1; i >= 0; i--) builder.";
-            code += FunctionStart(lang, 'A') + "dd";
-            code += GenMethod(lang, parser, vector_type);
-            code += "(";
-            code += SourceCastBasic(lang, parser, vector_type, false);
-            code += "data[i]";
-            if (lang.language == IDLOptions::kCSharp &&
-                (vector_type.base_type == BASE_TYPE_STRUCT || vector_type.base_type == BASE_TYPE_STRING))
-                code += ".Value";
-            code += "); return ";
-            code += "builder." + FunctionStart(lang, 'E') + "ndVector();";
+          std::string elem_type_name = GenTypeBasic(lang, parser, vector_type);
+          std::vector<std::tuple<std::string, std::string, bool>> list_param_info_vec;
+
+          list_param_info_vec.push_back(std::make_tuple(elem_type_name + "[]", std::string("Length"), true));
+          if (lang.language == IDLOptions::kCSharp) {
+            list_param_info_vec.push_back(std::make_tuple("List<" + elem_type_name + ">", std::string("Count"), false));
+            list_param_info_vec.push_back(std::make_tuple("IList<" + elem_type_name + ">", std::string("Count"), false));
           }
-          code += " }\n";
+
+          for (auto itr = list_param_info_vec.begin(); itr != list_param_info_vec.end(); ++itr) {
+            const std::string& list_type_name = std::get<0>(*itr);
+            const std::string& list_length_prop_name = std::get<1>(*itr);
+            bool is_array = std::get<2>(*itr);
+            
+            // Generate a method to create a vector from a Java array.
+            code += "  public static " + GenVectorOffsetType(lang) + " " + FunctionStart(lang, 'C') + "reate";
+            code += MakeCamel(field.name);
+            code += "Vector(FlatBufferBuilder builder, ";
+            code += list_type_name + " data) ";
+            code += "{ ";
+
+            std::string list_length_prop_name_camel = 
+              MakeCamel(list_length_prop_name, lang.language == IDLOptions::kCSharp);
+            std::string list_length_access = "data." + list_length_prop_name_camel;
+
+            if (lang.language == IDLOptions::kCSharp 
+                && IsScalar(vector_type.base_type) 
+                && !IsEnum(vector_type) 
+                && is_array) {
+              code += "return builder.Create";
+              code += GenMethod(lang, parser, vector_type);
+              code += "Vector(data, 0, " + list_length_access + ");";
+            } else {
+              // Generate a method to create a vector from a Java array.
+              code += "builder." + FunctionStart(lang, 'S') + "tartVector(";
+              code += NumToString(elem_size);
+              code += ", " + list_length_access + ", ";
+              code += NumToString(alignment);
+              code += "); for (int i = ";
+              code += list_length_access + " - 1; i >= 0; i--) builder.";
+              code += FunctionStart(lang, 'A') + "dd";
+              code += GenMethod(lang, parser, vector_type);
+              code += "(";
+              code += SourceCastBasic(lang, parser, vector_type, false);
+              code += "data[i]";
+              if (lang.language == IDLOptions::kCSharp &&
+                  (vector_type.base_type == BASE_TYPE_STRUCT || vector_type.base_type == BASE_TYPE_STRING))
+                  code += ".Value";
+              code += "); return ";
+              code += "builder." + FunctionStart(lang, 'E') + "ndVector();";
+            }
+            code += " }\n";
+          }
         }
         // Generate a method to start a vector, data to be added manually after.
         code += "  public static void " + FunctionStart(lang, 'S') + "tart";
@@ -1177,6 +1201,491 @@ static void GenStruct(const LanguageParameters &lang, const Parser &parser,
     }
   }
   code += "};\n\n";
+}
+
+
+static std::string GenTypePointerCsStruct(const LanguageParameters &lang, const Parser &parser,
+                                          const Type &type) {
+  if (type.base_type == BASE_TYPE_VECTOR) {
+    Type vectorElemType = type.VectorType();
+    std::string vectorElemTypeName =
+      vectorElemType.base_type != BASE_TYPE_STRUCT 
+        ? GenTypeGet(lang, parser, type.VectorType()) 
+        : vectorElemType.struct_def->name;
+    return MakeCamel(vectorElemTypeName) + "Vector";
+  }
+
+  std::string pointerTypeName = GenTypePointer(lang, parser, type);
+
+  if (type.base_type == BASE_TYPE_STRUCT) {
+    pointerTypeName += "Struct";
+  }
+
+  return pointerTypeName;
+}
+
+static std::string GenTypeGetCsStruct(const LanguageParameters &lang, const Parser &parser,
+                                      const Type &type) {
+  return IsScalar(type.base_type)
+    ? GenTypeBasic(lang, parser, type)
+    : GenTypePointerCsStruct(lang, parser, type);
+}
+
+static void GenFieldAccessors(const LanguageParameters &lang, const Parser &parser,
+                             const StructDef& struct_def, const Value& value,
+                             const Type &type, const std::string& accessor_name_root, 
+                             std::string *code_ptr) {
+  if (type.base_type == BASE_TYPE_UNION)
+    return;
+
+  std::string &code = *code_ptr;
+  std::string type_name = GenTypeGetCsStruct(lang, parser, type);
+  std::string dest_cast = DestinationCast(lang, parser, type);
+  std::string src_cast = SourceCast(lang, parser, type);
+
+  std::string return_type = type_name;
+  if (type.base_type == BASE_TYPE_STRUCT && !struct_def.fixed
+      || type.base_type == BASE_TYPE_VECTOR) {
+    return_type += '?';
+  }
+
+  std::string method_name = MakeCamel(accessor_name_root, true);
+  std::string method_start = "  public " + return_type + " " + method_name;
+  std::string accessor_var_type_name = struct_def.fixed ? "BufferPosition" : "TableAccessor";
+  std::string accessor_var_name = struct_def.fixed ? "_bufferPosition" : "_tableAccessor";
+
+  std::string param_name = MakeCamel(accessor_name_root, false);
+  if (IsScalar(type.base_type) || type.base_type == BASE_TYPE_STRING) {
+    param_name += "Value";
+  } else if (type.base_type == BASE_TYPE_VECTOR) {
+    param_name += "Vector";
+  } else {
+    assert(type.struct_def != nullptr);
+    if (type.struct_def->fixed)
+      param_name += "Struct";
+    else
+      param_name += "Table";
+  }
+
+  code += method_start + " {";
+
+  if (IsScalar(type.base_type) || type.base_type == BASE_TYPE_STRING) {
+    std::string type_name_in_camel = MakeCamel(type_name);
+    std::string value_accessor_method_suffix = 
+      IsEnum(type) ? MakeCamel(GenTypeBasic(lang, parser, type, false)) : type_name_in_camel;
+    std::string value_accessor_method = "Get" + value_accessor_method_suffix;
+    std::string default_value_arg;
+    if (!struct_def.fixed) {
+      value_accessor_method += "FieldValue";
+      if (IsScalar(type.base_type))
+        default_value_arg = ", " + GenDefaultValue(lang, parser, value, false);
+    }
+    
+    code += " get { return " + dest_cast + accessor_var_name + "." + value_accessor_method + "(" 
+            + NumToString(value.offset) + default_value_arg + "); } }\n";
+
+    if (IsScalar(type.base_type)) {
+      code += "  public ";
+      code += struct_def.fixed ? "void" : "bool";
+      code += " Mutate" + method_name + "(" + type_name + " " + param_name + ") { ";
+      if (!struct_def.fixed)
+        code += "return ";
+      code += accessor_var_name + ".";
+      code += struct_def.fixed ? "Put" : "Mutate";
+      code += value_accessor_method_suffix;
+      if (!struct_def.fixed)
+        code += "FieldValue";
+      code += "(" + NumToString(value.offset) + ", " + src_cast + param_name + "); }\n";
+
+      if (!struct_def.fixed) {
+        code += "  public bool Is" + method_name + "Specified { get { return ";
+        code += accessor_var_name + ".CheckField(" + NumToString(value.offset);
+        code += "); } }\n";
+      }
+    }
+  } else {
+    std::string out_value_type = "BufferPosition";
+    std::string out_value_var_name = "position";
+    std::string out_value_var_decl = out_value_type + " " + out_value_var_name + ";";
+
+    if (type.base_type == BASE_TYPE_STRUCT && struct_def.fixed) {
+      std::string create_buf_pos_expr_partial = accessor_var_name + ".Create(" + NumToString(value.offset);
+
+      code += " get { return new " + type_name + "(" + create_buf_pos_expr_partial + ")); } }\n\n";
+
+      code += "  public void Get" + method_name + "(out " + return_type + " " + param_name + ") {\n";
+      code += "    " + out_value_var_decl + "\n";
+      code += "    " + create_buf_pos_expr_partial + ", out " + out_value_var_name + ");\n";
+      code += "    " + param_name + " = " + "new " + type_name + "(ref " + out_value_var_name + ");\n";
+      code += "  }\n\n";
+    } else {
+      assert(!struct_def.fixed);
+
+      std::string try_get_field_kind;
+      if (type.base_type == BASE_TYPE_VECTOR) {
+        try_get_field_kind = "Vector";
+      } else {
+        assert(type.base_type == BASE_TYPE_STRUCT);
+
+        if (type.struct_def->fixed) {
+          try_get_field_kind = "Struct";
+        } else {
+          try_get_field_kind = "Table";
+        }
+      }
+
+      std::string try_get_field_value = 
+        accessor_var_name + ".TryGet" + try_get_field_kind + "FieldValue(" 
+        + NumToString(value.offset) + ", out " + out_value_var_name + ")";
+      std::string create_value_expr = "new " + type_name + "(ref " + out_value_var_name + ")";
+
+      code += "\n    get {\n";
+      code += "      " + out_value_var_decl + "\n";
+      code += "      return " + try_get_field_value;
+      code += " ? " + create_value_expr + ": (" + return_type + ")null;\n    }\n  }\n\n";
+
+
+      std::string try_get_method_name = "TryGet" + method_name;
+      code += "  public bool " + try_get_method_name + "(out " + type_name + " " + param_name + ") {\n";
+      code += "    " + out_value_var_decl + "\n";
+      code += "    if (" + try_get_field_value + ") {\n";
+      code += "      " + param_name + " = " + create_value_expr + ";\n";
+      code += "      return true;\n";
+      code += "    }\n";
+      code += "    " + param_name + " = default(" + type_name + ");\n";
+      code += "    return false;\n";
+      code += "  }\n\n";
+    }
+  }
+}
+
+
+static void GenStructCsStruct(const LanguageParameters &lang, const Parser &parser,
+                              StructDef &struct_def, std::string *code_ptr) {
+  if (struct_def.generated) return;
+  std::string &code = *code_ptr;
+
+  GenComment(struct_def.doc_comment, code_ptr, &lang.comment_config);
+
+  code += "public ";
+  if (struct_def.attributes.Lookup("csharp_partial")) {
+    // generate a partial class for this C# struct/table
+    code += "partial ";
+  }
+
+  std::string csStructName = struct_def.name + "Struct";
+
+  code += "struct " + csStructName;
+  //code += lang.inheritance_marker + struct_def.fixed ? "Struct" : "Table";
+  code += " {\n";
+
+  std::string accessor_var_type_name;
+  std::string accessor_var_name;
+  std::string accessor_param_type_name = "BufferPosition";
+  std::string accessor_param_name = "bufferPosition";
+  std::string accessor_var_assign_rvalue_expr;
+
+  if (struct_def.fixed) {
+    accessor_var_type_name = accessor_param_type_name;
+    accessor_var_name = "_bufferPosition";
+    accessor_var_assign_rvalue_expr = accessor_param_name;
+  } else {
+    accessor_var_type_name = "TableAccessor";
+    accessor_var_name = "_tableAccessor";
+    accessor_var_assign_rvalue_expr = "new " + accessor_var_type_name + "(ref " + accessor_param_name + ")";
+  }
+
+  code += "  private " + accessor_var_type_name + " " + accessor_var_name + ";\n\n";
+
+  code += "  public " + csStructName + "(" + accessor_param_type_name + " " + accessor_param_name + ") { ";
+  code += accessor_var_name + " = " + accessor_var_assign_rvalue_expr + "; }\n";
+
+  code += "  public " + csStructName + "(ref " + accessor_param_type_name + " " + accessor_param_name + ") { ";
+  code += accessor_var_name + " = " + accessor_var_assign_rvalue_expr + "; }\n\n";
+
+  if (!struct_def.fixed) {
+    // Generate private constructors for use by GetRootAs methods
+    std::string byte_buffer_param_name = "buffer";
+    std::string byte_buffer_param_decl = "ByteBuffer " + byte_buffer_param_name;
+    code += "  private " + csStructName + "(" + byte_buffer_param_decl + ") { ";
+    code += accessor_var_type_name + ".CreateFromOffset(" + byte_buffer_param_name + ", out " 
+            + accessor_var_name + "); }\n";
+
+    std::string byte_buffer_seg_param_name = "segment";
+    std::string byte_buffer_seg_param_decl = "ByteBufferSegment " + byte_buffer_seg_param_name;
+    code += "  private " + csStructName + "(ref " + byte_buffer_seg_param_decl + ") { ";
+    code += accessor_var_type_name + ".CreateFromOffset(ref " + byte_buffer_seg_param_name + ", out "
+      + accessor_var_name + "); }\n\n";
+
+    // Generate a special accessor for the table that when used as the root
+    // of a FlatBuffer
+    std::string method_name = FunctionStart(lang, 'G') + "etRootAs" + struct_def.name;
+    std::string method_signature = "  public static " + csStructName + " " + method_name;
+    std::string out_method_signature = "  public static void " + method_name;
+    std::string out_param_name = MakeCamel(struct_def.name, false) + "Table";
+    std::string out_param_decl = ", out " + csStructName + " " + out_param_name;
+
+    // create method that uses ByteBuffer Position
+    code += method_signature + "(" + byte_buffer_param_decl + ") ";
+    code += "{ return new " + csStructName + "(" + byte_buffer_param_name+ "); }\n";
+
+    code += out_method_signature + "(" + byte_buffer_param_decl + out_param_decl + ") ";
+    code += "{ " + out_param_name + " = new " + csStructName + "(" + byte_buffer_param_name 
+            + "); }\n";
+
+    std::string create_from_seg_method_end =
+      "new " + csStructName + "(ref " + byte_buffer_seg_param_name + "); }\n"; 
+    std::string byte_buffer_seg_ovld_body = "{ return " + create_from_seg_method_end;
+    std::string byte_buffer_seg_out_ovld_body = 
+      "{ " + out_param_name + " = " + create_from_seg_method_end;
+
+    // create method that uses ByteBufferSegment
+    code += method_signature + "(" + byte_buffer_seg_param_decl + ") ";
+    code += byte_buffer_seg_ovld_body;
+
+    code += out_method_signature + "(" + byte_buffer_seg_param_decl + out_param_decl + ")";
+    code += byte_buffer_seg_out_ovld_body;
+
+    code += method_signature + "(ref " + byte_buffer_seg_param_decl + ") ";
+    code += byte_buffer_seg_ovld_body;
+
+    code += out_method_signature + "(ref " + byte_buffer_seg_param_decl + out_param_decl + ") ";
+    code += byte_buffer_seg_out_ovld_body;
+
+    code += "\n";
+
+    if (parser.root_struct_def_ == &struct_def) {
+      if (parser.file_identifier_.length()) {
+        // Check if a buffer has the identifier.
+        code += "  public static ";
+        code += lang.bool_type + struct_def.name;
+        code += "BufferHasIdentifier(ByteBuffer buffer) { return ";
+        code += accessor_var_type_name + ".HasIdentifier(buffer, \"" + parser.file_identifier_;
+        code += "\"); }\n";
+      }
+      code += "\n";
+    }
+  }
+
+  code += "  public " + accessor_var_type_name + " Get" + accessor_var_type_name + "() { ";
+  code += "return " + accessor_var_name + "; }\n\n";
+
+  for (auto it = struct_def.fields.vec.begin();
+       it != struct_def.fields.vec.end();
+       ++it) {
+    auto &field = **it;
+    if (field.deprecated) continue;
+    GenComment(field.doc_comment, code_ptr, &lang.comment_config, "  ");
+
+    if (field.value.type.base_type == BASE_TYPE_UNION) {
+      const EnumDef& union_enum_def = *field.value.type.enum_def;
+      assert(union_enum_def.is_union);
+
+      std::string accessor_name_root_prefix = MakeCamel(field.name, lang.first_camel_upper) + "As";
+      const auto& enum_val_vec = union_enum_def.vals.vec;
+      for (auto it = enum_val_vec.begin() + 1; it != enum_val_vec.end(); ++it) {
+        std::string accessor_name_root = accessor_name_root_prefix + (*it)->name;
+        Type union_member_type(BASE_TYPE_STRUCT, (*it)->struct_def);
+        GenFieldAccessors(lang, parser, struct_def, field.value, union_member_type, accessor_name_root, &code);
+      }
+    } else {
+      GenFieldAccessors(lang, parser, struct_def, field.value, field.value.type, field.name, code_ptr);
+
+      // Generate a ByteBuffer accessor for strings
+      if (field.value.type.base_type == BASE_TYPE_STRING) {
+        std::string field_name_in_camel = MakeCamel(field.name);
+        std::string offset_str = NumToString(field.value.offset);
+
+        code += "  public ArraySegment<byte>? Get";
+        code += field_name_in_camel;
+        code += "Bytes() { return ";
+        code += accessor_var_name;
+        code += ".GetStringFieldValueAsArraySegment(";
+        code += offset_str;
+        code += "); }\n";
+        code += "  public ByteBufferSegment? Get";
+        code += field_name_in_camel;
+        code += "BufferSegment() { return ";
+        code += accessor_var_name;
+        code += ".GetStringFieldValueAsByteBufferSegment(";
+        code += offset_str;
+        code += "); }\n";
+      }
+
+      // generate object accessors if is nested_flatbuffer
+      auto nested = field.attributes.Lookup("nested_flatbuffer");
+      if (nested) {
+        assert(field.value.type.base_type == BASE_TYPE_VECTOR 
+               && field.value.type.element == BASE_TYPE_UCHAR);
+
+        auto nested_qualified_name = nested->constant;
+        // first attempt lookup using attribute value
+        auto nested_type = parser.structs_.Lookup(nested_qualified_name);
+        // if not found, try qualifying the name using known namespaces
+        if (nested_type == nullptr) {
+          for (auto namespaceItr = parser.namespaces_.rbegin();
+               namespaceItr != parser.namespaces_.rend() && nested_type == nullptr;
+               ++namespaceItr) {
+            nested_qualified_name = (*namespaceItr)->GetFullyQualifiedName(nested->constant);
+            nested_type = parser.structs_.Lookup(nested_qualified_name);
+          }
+        }
+        // generate helper if we can find the specified flatbuffer
+        if (nested_type != nullptr) {
+          auto nested_method_name = MakeCamel(field.name, true) + "As" + nested_type->name;
+          auto nested_type_name = WrapInNameSpace(parser, *nested_type) + "Struct";
+          std::string nested_try_get_method_name = "TryGet" + nested_method_name;
+          std::string nested_var_name = MakeCamel(nested_type->name, false) + "Table";
+          std::string nested_var_decl_expr = nested_type_name + " " + nested_var_name;
+          std::string vector_pos_var_name = "vectorPosition";
+          std::string vector_pos_var_decl = "BufferPosition " + vector_pos_var_name + ";";
+          std::string try_get_vector_pos_expr =  
+            accessor_var_name + ".TryGetVectorFieldValue(" + NumToString(field.value.offset)
+            + ", out " + vector_pos_var_name + ")";
+          std::string nested_table_pos_var_name = "tablePosition";
+          std::string nested_table_pos_var_decl = "BufferPosition " + nested_table_pos_var_name + ";";
+          std::string get_nested_table_pos_stmt =
+            "VectorAccessor.GetNestedFlatBufferTable(ref " + vector_pos_var_name + ", out "
+            + nested_table_pos_var_name + ");";
+          std::string create_nested_type_expr = 
+            "new " + nested_type_name + "(ref " + nested_table_pos_var_name + ")";
+          std::string return_type = nested_type_name + "?";
+
+          code += "  public " + return_type + " " + nested_method_name + " {\n";
+          code += "    get {\n      " + nested_var_decl_expr + ";\n";
+          code += "      return " + nested_try_get_method_name + "(out " + nested_var_name + ")";
+          code += " ? " + nested_var_name + " : (" + return_type + ")null;\n    }\n  }\n\n";
+          code += "  public bool " + nested_try_get_method_name + "(out " + nested_var_decl_expr + ") {\n";
+          code += "    " + vector_pos_var_decl + "\n";
+          code += "    if (" + try_get_vector_pos_expr + ") {\n";
+          code += "      " + nested_table_pos_var_decl + "\n";
+          code += "      " + get_nested_table_pos_stmt + "\n";
+          code += "      " + nested_var_name + " = " + create_nested_type_expr + ";\n";
+          code += "      return true;\n    }\n";
+          code += "    " + nested_var_name + " = default(" + nested_type_name + ");\n";
+          code += "    return false;\n  }\n\n";
+        }
+      }
+    }
+  }
+  code += "\n";
+  code += "}\n\n";
+}
+
+static void GenVectorCsStruct(const LanguageParameters &lang, const Parser &parser,
+                              const Type& type, std::string *code_ptr) {
+  assert(IsEnum(type) || type.base_type == BASE_TYPE_STRUCT);
+
+  std::string& code = *code_ptr;
+  if (IsEnum(type) && type.enum_def->generated
+      || type.base_type == BASE_TYPE_STRUCT && type.struct_def->generated) {
+    return;
+  }
+
+  std::string type_name = GenTypeGet(lang, parser, type);
+  std::string vector_struct_type_name = MakeCamel(type_name) + "Vector";
+  std::string vector_accessor_type_name = "VectorAccessor";
+  std::string vector_accessor_var_name = "_vectorAccessor";
+  std::string cons_param_type_name = "BufferPosition";
+  std::string cons_param_var_name = "vectorPosition";
+  std::string cons_param_var_decl_expr = cons_param_type_name + " " + cons_param_var_name;
+  std::string cons_body = "{ " + vector_accessor_var_name + " = new " + vector_accessor_type_name 
+                          + "(ref " + cons_param_var_name + "); }";
+  std::string return_type_name = GenTypeGetCsStruct(lang, parser, type);
+
+  code += "public struct " + vector_struct_type_name + " : ";
+  if (IsEnum(type)) {
+    code += "IVector";
+  } else {
+    code += "IFieldGroupVector";
+  }
+  code += "<" + return_type_name + ">";
+  code += " {\n";
+  code += "  private " + vector_accessor_type_name + " " + vector_accessor_var_name + ";\n\n";
+  code += "  public " + vector_struct_type_name + "(" + cons_param_var_decl_expr +") ";
+  code += cons_body + "\n";
+  code += "  public " + vector_struct_type_name + "(ref " + cons_param_var_decl_expr + ") ";
+  code += cons_body + "\n\n";
+  code += "  public " + vector_accessor_type_name + " " + vector_accessor_type_name + " { ";
+  code += "get { return " + vector_accessor_var_name + "; } }\n";
+  code += "  public int Length { get { return " + vector_accessor_var_name
+          + ".VectorDataLength; } }\n";
+  code += "  public ArraySegment<byte> GetAsArraySegment() { return " + vector_accessor_var_name
+          + ".GetVectorAsArraySegment(); }\n";
+  code += "  public void GetAsArraySegment(out ArraySegment<byte> arraySegment) { " 
+          + vector_accessor_var_name + ".GetVectorAsArraySegment(out arraySegment); }\n";
+  code += "  public ByteBufferSegment GetAsByteBufferSegment() { return "
+          + vector_accessor_var_name + ".GetVectorAsByteBufferSegment(); }\n";
+  code += "  public void GetAsByteBufferSegment(out ByteBufferSegment byteBufferSegment) { ";
+  code += vector_accessor_var_name + ".GetVectorAsByteBufferSegment(";
+  code += "out byteBufferSegment); }\n";
+  
+  std::string enumerator_type_name;
+  if (type.base_type == BASE_TYPE_STRUCT)
+    enumerator_type_name = "FieldGroup";
+  enumerator_type_name += "VectorEnumerator" "<" + return_type_name + ", "
+    + vector_struct_type_name + ">";
+
+  code += "  public " + enumerator_type_name + " GetEnumerator() { ";
+  code += "return new " + enumerator_type_name + "(ref this); }\n";
+  code += "  System.Collections.Generic.IEnumerator<" + return_type_name + "> ";
+  code += "System.Collections.Generic.IEnumerable<" + return_type_name + ">.GetEnumerator() { ";
+  code += "return GetEnumerator(); }\n";
+  code += "  System.Collections.IEnumerator System.Collections.IEnumerable.GetEnumerator() { ";
+  code += "return GetEnumerator(); }\n\n";
+
+  std::string index_var_name = "index";
+
+  std::string get_item_body;
+  std::string get_item_return_expr;
+  std::string set_item_expr;
+  if (IsEnum(type)) {
+    std::string item_method_suffix = MakeCamel(GenTypeBasic(lang, parser, type, false)) + "Item";
+    std::string get_item_method = "Get" + item_method_suffix;
+    std::string get_cast = DestinationCast(lang, parser, type);
+    get_item_return_expr = get_cast + vector_accessor_var_name + "." + get_item_method + "("
+                           + index_var_name + ")";
+
+    std::string put_item_method = "Put" + item_method_suffix;
+    std::string put_cast = SourceCast(lang, parser, type);
+    set_item_expr = vector_accessor_var_name + "." + put_item_method + "(" + index_var_name
+                    + ", " + put_cast + "value)";
+  } else {
+    std::string item_pos_var_name = "itemPosition";
+    std::string item_pos_var_decl = "BufferPosition " + item_pos_var_name + ";";
+    std::string item_var_name = "item";
+    std::string item_var_decl_expr = return_type_name + " " + item_var_name;
+    std::string vector_accessor_get_item = "Get";
+    vector_accessor_get_item += (type.struct_def->fixed ? "Struct" : "Table");
+    vector_accessor_get_item += "Item";
+
+    code += "  public void GetItem(int " + index_var_name + ", out " + item_var_decl_expr + ") {\n";
+    code += "    " + item_pos_var_decl + "\n";
+    code += "    " + vector_accessor_var_name + ".";
+    code += vector_accessor_get_item;
+    code += "(" + index_var_name;
+    if (type.struct_def->fixed)
+      code += ", " + NumToString(InlineSize(type));
+    code += ", out " + item_pos_var_name + ");\n";
+    code += "    " + item_var_name + " = new " + return_type_name + "(ref " + item_pos_var_name + ");\n";
+    code += "  }\n\n";
+
+    get_item_body += "      " + item_var_decl_expr + ";\n";
+    get_item_body += "      GetItem(" + index_var_name + ", out " + item_var_name + ");";
+    get_item_return_expr = item_var_name;
+    set_item_expr = "throw new NotSupportedException()";
+  }
+
+  code += "  public " + return_type_name + " this[int " + index_var_name + "] {\n";
+  code += "    get { ";
+  if (!get_item_body.empty())
+    code += "\n" + get_item_body + "\n      ";
+  code += "return " + get_item_return_expr + ";";
+  if (!get_item_body.empty())
+    code += "\n   ";
+  code += " }\n";
+  code += "    set { " + set_item_expr + "; }\n  }\n";
+  code += "}\n\n";
 }
 
 // Save out the generated code for a single class while adding
@@ -1244,6 +1753,44 @@ bool GenerateGeneral(const Parser &parser,
     else {
       if (!SaveClass(lang, parser, (**it).name, declcode, path, true, false))
         return false;
+    }
+  }
+
+  if (lang.language == IDLOptions::kCSharp && parser.opts.generate_cs_structs) {
+    for (auto it = parser.structs_.vec.begin();
+         it != parser.structs_.vec.end(); ++it) {
+      std::string declcode;
+      GenStructCsStruct(lang, parser, **it, &declcode);
+      if (parser.opts.one_file) {
+        one_file_code += declcode;
+      } else {
+        if (!SaveClass(lang, parser, (**it).name + "Struct", declcode, path, true, false))
+          return false;
+      }
+    }
+
+    for (auto it = parser.enums_.vec.begin();
+         it != parser.enums_.vec.end(); ++it) {
+      std::string declcode;
+      GenVectorCsStruct(lang, parser, (**it).underlying_type, &declcode);
+      if (parser.opts.one_file) {
+        one_file_code += declcode;
+      } else {
+        if (!SaveClass(lang, parser, (**it).name + "Vector", declcode, path, true, false))
+          return false;
+      }
+    }
+
+    for (auto it = parser.structs_.vec.begin();
+         it != parser.structs_.vec.end(); ++it) {
+      std::string declcode;
+      GenVectorCsStruct(lang, parser, Type(BASE_TYPE_STRUCT, *it), &declcode);
+      if (parser.opts.one_file) {
+        one_file_code += declcode;
+      } else {
+        if (!SaveClass(lang, parser, (**it).name + "Vector", declcode, path, true, false))
+          return false;
+      }
     }
   }
 

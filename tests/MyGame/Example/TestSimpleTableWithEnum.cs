@@ -4,6 +4,7 @@ namespace MyGame.Example
 {
 
 using System;
+using System.Collections.Generic;
 using FlatBuffers;
 
 public partial class TestSimpleTableWithEnum : Table {
