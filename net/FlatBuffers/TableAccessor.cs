@@ -1,4 +1,4 @@
-﻿//#define CACHE_VTABLE_INFO
+﻿#define CACHE_VTABLE_INFO
 
 using System;
 using System.Collections.Generic;

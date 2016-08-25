@@ -1,5 +1,5 @@
 ﻿
-#define CACHE_VECTOR_DATA_LENGTH
+//#define CACHE_VECTOR_DATA_LENGTH
 
 using System;
 using System.Collections.Generic;
