@@ -28,8 +28,8 @@ namespace flatbuffers {
 std::string MakeCamel(const std::string &in, bool first) {
   std::string s;
   for (size_t i = 0; i < in.length(); i++) {
-    if (!i && first)
-      s += static_cast<char>(toupper(in[0]));
+    if (!i && first != (isupper(in[0]) != 0))
+      s += static_cast<char>(first ? toupper(in[0]) : tolower(in[0]));
     else if (in[i] == '_' && i + 1 < in.length())
       s += static_cast<char>(toupper(in[++i]));
     else
@@ -145,7 +145,7 @@ LanguageParameters language_parameters[] = {
     "",
     "Position",
     "Offset",
-    "using System;\nusing FlatBuffers;\n\n",
+    "using System;\nusing System.Collections.Generic;\nusing FlatBuffers;\n\n",
     {
       nullptr,
       "///",
@@ -1098,36 +1098,59 @@ static void GenStruct(const LanguageParameters &lang, const Parser &parser,
         auto alignment = InlineAlignment(vector_type);
         auto elem_size = InlineSize(vector_type);
         if (!IsStruct(vector_type)) {
-          // Generate a method to create a vector from a Java array.
-          code += "  public static " + GenVectorOffsetType(lang) + " " + FunctionStart(lang, 'C') + "reate";
-          code += MakeCamel(field.name);
-          code += "Vector(FlatBufferBuilder builder, ";
-          code += GenTypeBasic(lang, parser, vector_type) + "[] data) ";
-          code += "{ ";
-          if (lang.language == IDLOptions::kCSharp && IsScalar(vector_type.base_type) && !IsEnum(vector_type)) {
-            code += "return builder.Create";
-            code += GenMethod(lang, parser, vector_type);
-            code += "Vector(data, 0, data.Length);";
-          } else {
-            // Generate a method to create a vector from a Java array.
-            code += "builder." + FunctionStart(lang, 'S') + "tartVector(";
-            code += NumToString(elem_size);
-            code += ", data." + FunctionStart(lang, 'L') + "ength, ";
-            code += NumToString(alignment);
-            code += "); for (int i = data.";
-            code += FunctionStart(lang, 'L') + "ength - 1; i >= 0; i--) builder.";
-            code += FunctionStart(lang, 'A') + "dd";
-            code += GenMethod(lang, parser, vector_type);
-            code += "(";
-            code += SourceCastBasic(lang, parser, vector_type, false);
-            code += "data[i]";
-            if (lang.language == IDLOptions::kCSharp &&
-                (vector_type.base_type == BASE_TYPE_STRUCT || vector_type.base_type == BASE_TYPE_STRING))
-                code += ".Value";
-            code += "); return ";
-            code += "builder." + FunctionStart(lang, 'E') + "ndVector();";
+          std::string elem_type_name = GenTypeBasic(lang, parser, vector_type);
+          std::vector<std::tuple<std::string, std::string, bool>> list_param_info_vec;
+
+          list_param_info_vec.push_back(std::make_tuple(elem_type_name + "[]", std::string("Length"), true));
+          if (lang.language == IDLOptions::kCSharp) {
+            list_param_info_vec.push_back(std::make_tuple("List<" + elem_type_name + ">", std::string("Count"), false));
+            list_param_info_vec.push_back(std::make_tuple("IList<" + elem_type_name + ">", std::string("Count"), false));
           }
-          code += " }\n";
+
+          for (auto itr = list_param_info_vec.begin(); itr != list_param_info_vec.end(); ++itr) {
+            const std::string& list_type_name = std::get<0>(*itr);
+            const std::string& list_length_prop_name = std::get<1>(*itr);
+            bool is_array = std::get<2>(*itr);
+            
+            // Generate a method to create a vector from a Java array.
+            code += "  public static " + GenVectorOffsetType(lang) + " " + FunctionStart(lang, 'C') + "reate";
+            code += MakeCamel(field.name);
+            code += "Vector(FlatBufferBuilder builder, ";
+            code += list_type_name + " data) ";
+            code += "{ ";
+
+            std::string list_length_prop_name_camel = 
+              MakeCamel(list_length_prop_name, lang.language == IDLOptions::kCSharp);
+            std::string list_length_access = "data." + list_length_prop_name_camel;
+
+            if (lang.language == IDLOptions::kCSharp 
+                && IsScalar(vector_type.base_type) 
+                && !IsEnum(vector_type) 
+                && is_array) {
+              code += "return builder.Create";
+              code += GenMethod(lang, parser, vector_type);
+              code += "Vector(data, 0, " + list_length_access + ");";
+            } else {
+              // Generate a method to create a vector from a Java array.
+              code += "builder." + FunctionStart(lang, 'S') + "tartVector(";
+              code += NumToString(elem_size);
+              code += ", " + list_length_access + ", ";
+              code += NumToString(alignment);
+              code += "); for (int i = ";
+              code += list_length_access + " - 1; i >= 0; i--) builder.";
+              code += FunctionStart(lang, 'A') + "dd";
+              code += GenMethod(lang, parser, vector_type);
+              code += "(";
+              code += SourceCastBasic(lang, parser, vector_type, false);
+              code += "data[i]";
+              if (lang.language == IDLOptions::kCSharp &&
+                  (vector_type.base_type == BASE_TYPE_STRUCT || vector_type.base_type == BASE_TYPE_STRING))
+                  code += ".Value";
+              code += "); return ";
+              code += "builder." + FunctionStart(lang, 'E') + "ndVector();";
+            }
+            code += " }\n";
+          }
         }
         // Generate a method to start a vector, data to be added manually after.
         code += "  public static void " + FunctionStart(lang, 'S') + "tart";
