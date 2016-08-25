@@ -62,6 +62,33 @@ namespace FlatBuffers.Test
             {
                 return -1;
             }
+
+            Console.WriteLine("Press <ENTER> to run tests again...");
+            Console.ReadLine();
+
+            foreach (var testClass in testClasses)
+            {
+                var methods = testClass.GetMethods(BindingFlags.Public |
+                                                         BindingFlags.Instance)
+                          .Where(m => m.GetCustomAttributes(typeof(FlatBuffersTestMethodAttribute), false).Length > 0);
+
+                var inst = Activator.CreateInstance(testClass);
+
+                foreach (var method in methods)
+                {
+                    try
+                    {
+                        method.Invoke(inst, new object[] { });
+                    }
+                    catch (Exception ex)
+                    {
+                        Console.WriteLine("{0}: FAILED when invoking {1} with error {2}",
+                            testClass.Name ,method.Name, ex.GetBaseException());
+                        testResults.Add(false);
+                    }
+                }
+            }
+
             return 0;
         }
     }

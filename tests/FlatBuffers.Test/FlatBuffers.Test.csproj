@@ -43,11 +43,20 @@
     </Reference>
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="..\..\net\FlatBuffers\BufferPosition.cs">
+      <Link>FlatBuffers\BufferPosition.cs</Link>
+    </Compile>
+    <Compile Include="..\..\net\FlatBuffers\BuiltInVector.cs">
+      <Link>FlatBuffers\BuiltInVector.cs</Link>
+    </Compile>
     <Compile Include="..\..\net\FlatBuffers\ByteBuffer.cs">
       <Link>FlatBuffers\ByteBuffer.cs</Link>
     </Compile>
     <Compile Include="..\..\net\FlatBuffers\ByteBufferSegment.cs">
       <Link>FlatBuffers\ByteBufferSegment.cs</Link>
+    </Compile>
+    <Compile Include="..\..\net\FlatBuffers\IVector.cs">
+      <Link>FlatBuffers\IVector.cs</Link>
     </Compile>
     <Compile Include="..\..\net\FlatBuffers\Offset.cs">
       <Link>FlatBuffers\Offset.cs</Link>
@@ -64,26 +73,77 @@
     <Compile Include="..\..\net\FlatBuffers\Table.cs">
       <Link>FlatBuffers\Table.cs</Link>
     </Compile>
+    <Compile Include="..\..\net\FlatBuffers\TableAccessor.cs">
+      <Link>FlatBuffers\TableAccessor.cs</Link>
+    </Compile>
+    <Compile Include="..\..\net\FlatBuffers\VectorAccessor.cs">
+      <Link>FlatBuffers\VectorAccessor.cs</Link>
+    </Compile>
+    <Compile Include="..\..\net\FlatBuffers\VectorEnumerator.cs">
+      <Link>FlatBuffers\VectorEnumerator.cs</Link>
+    </Compile>
     <Compile Include="..\MyGame\Example\Any.cs">
       <Link>MyGame\Example\Any.cs</Link>
+    </Compile>
+    <Compile Include="..\MyGame\Example\AnyVector.cs">
+      <Link>MyGame\Example\AnyVector.cs</Link>
     </Compile>
     <Compile Include="..\MyGame\Example\Color.cs">
       <Link>MyGame\Example\Color.cs</Link>
     </Compile>
+    <Compile Include="..\MyGame\Example\ColorVector.cs">
+      <Link>MyGame\Example\ColorVector.cs</Link>
+    </Compile>
     <Compile Include="..\MyGame\Example\Monster.cs">
       <Link>MyGame\Example\Monster.cs</Link>
+    </Compile>
+    <Compile Include="..\MyGame\Example\MonsterStruct.cs">
+      <Link>MyGame\Example\MonsterStruct.cs</Link>
+    </Compile>
+    <Compile Include="..\MyGame\Example\MonsterVector.cs">
+      <Link>MyGame\Example\MonsterVector.cs</Link>
     </Compile>
     <Compile Include="..\MyGame\Example\Stat.cs">
       <Link>MyGame\Example\Stat.cs</Link>
     </Compile>
+    <Compile Include="..\MyGame\Example\StatStruct.cs">
+      <Link>MyGame\Example\StatStruct.cs</Link>
+    </Compile>
+    <Compile Include="..\MyGame\Example\StatVector.cs">
+      <Link>MyGame\Example\StatVector.cs</Link>
+    </Compile>
     <Compile Include="..\MyGame\Example\Test.cs">
       <Link>MyGame\Example\Test.cs</Link>
+    </Compile>
+    <Compile Include="..\MyGame\Example\Test2Struct.cs">
+      <Link>MyGame\Example\Test2Struct.cs</Link>
+    </Compile>
+    <Compile Include="..\MyGame\Example\Test2Vector.cs">
+      <Link>MyGame\Example\Test2Vector.cs</Link>
     </Compile>
     <Compile Include="..\MyGame\Example\TestSimpleTableWithEnum.cs">
       <Link>MyGame\Example\TestSimpleTableWithEnum.cs</Link>
     </Compile>
+    <Compile Include="..\MyGame\Example\TestSimpleTableWithEnumStruct.cs">
+      <Link>MyGame\Example\TestSimpleTableWithEnumStruct.cs</Link>
+    </Compile>
+    <Compile Include="..\MyGame\Example\TestSimpleTableWithEnumVector.cs">
+      <Link>MyGame\Example\TestSimpleTableWithEnumVector.cs</Link>
+    </Compile>
+    <Compile Include="..\MyGame\Example\TestStruct.cs">
+      <Link>MyGame\Example\TestStruct.cs</Link>
+    </Compile>
+    <Compile Include="..\MyGame\Example\TestVector.cs">
+      <Link>MyGame\Example\TestVector.cs</Link>
+    </Compile>
     <Compile Include="..\MyGame\Example\Vec3.cs">
       <Link>MyGame\Example\Vec3.cs</Link>
+    </Compile>
+    <Compile Include="..\MyGame\Example\Vec3Struct.cs">
+      <Link>MyGame\Example\Vec3Struct.cs</Link>
+    </Compile>
+    <Compile Include="..\MyGame\Example\Vec3Vector.cs">
+      <Link>MyGame\Example\Vec3Vector.cs</Link>
     </Compile>
     <Compile Include="..\namespace_test\NamespaceA\NamespaceB\EnumInNestedNS.cs">
       <Link>NamespaceA\NamespaceB\EnumInNestedNS.cs</Link>
