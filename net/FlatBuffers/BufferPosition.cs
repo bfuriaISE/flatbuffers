@@ -230,6 +230,184 @@ namespace FlatBuffers {
     }
 
 
+    public void CopyTo(int relOffset, bool[] array, int arrayOffset, int count) {
+      _byteBuffer.CopyTo(_offset + relOffset, array, arrayOffset, count);
+    }
+
+    public void CopyTo(bool[] array, int arrayOffset, int count) {
+      CopyTo(0, array, arrayOffset, count);
+    }
+
+    public void CopyTo(int relOffset, byte[] array, int arrayOffset, int count) {
+      _byteBuffer.CopyTo(_offset + relOffset, array, arrayOffset, count);
+    }
+
+    public void CopyTo(byte[] array, int arrayOffset, int count) {
+      CopyTo(0, array, arrayOffset, count);
+    }
+
+    public void CopyTo(int relOffset, sbyte[] array, int arrayOffset, int count) {
+      _byteBuffer.CopyTo(_offset + relOffset, array, arrayOffset, count);
+    }
+
+    public void CopyTo(sbyte[] array, int arrayOffset, int count) {
+      CopyTo(0, array, arrayOffset, count);
+    }
+
+    public void CopyTo(int relOffset, short[] array, int arrayOffset, int count) {
+      _byteBuffer.CopyTo(_offset + relOffset, array, arrayOffset, count);
+    }
+
+    public void CopyTo(short[] array, int arrayOffset, int count) {
+      CopyTo(0, array, arrayOffset, count);
+    }
+
+    public void CopyTo(int relOffset, ushort[] array, int arrayOffset, int count) {
+      _byteBuffer.CopyTo(_offset + relOffset, array, arrayOffset, count);
+    }
+
+    public void CopyTo(ushort[] array, int arrayOffset, int count) {
+      CopyTo(0, array, arrayOffset, count);
+    }
+
+    public void CopyTo(int relOffset, int[] array, int arrayOffset, int count) {
+      _byteBuffer.CopyTo(_offset + relOffset, array, arrayOffset, count);
+    }
+
+    public void CopyTo(int[] array, int arrayOffset, int count) {
+      CopyTo(0, array, arrayOffset, count);
+    }
+
+    public void CopyTo(int relOffset, uint[] array, int arrayOffset, int count) {
+      _byteBuffer.CopyTo(_offset + relOffset, array, arrayOffset, count);
+    }
+
+    public void CopyTo(uint[] array, int arrayOffset, int count) {
+      CopyTo(0, array, arrayOffset, count);
+    }
+
+    public void CopyTo(int relOffset, long[] array, int arrayOffset, int count) {
+      _byteBuffer.CopyTo(_offset + relOffset, array, arrayOffset, count);
+    }
+
+    public void CopyTo(long[] array, int arrayOffset, int count) {
+      CopyTo(0, array, arrayOffset, count);
+    }
+
+    public void CopyTo(int relOffset, ulong[] array, int arrayOffset, int count) {
+      _byteBuffer.CopyTo(_offset + relOffset, array, arrayOffset, count);
+    }
+
+    public void CopyTo(ulong[] array, int arrayOffset, int count) {
+      CopyTo(0, array, arrayOffset, count);
+    }
+
+    public void CopyTo(int relOffset, float[] array, int arrayOffset, int count) {
+      _byteBuffer.CopyTo(_offset + relOffset, array, arrayOffset, count);
+    }
+
+    public void CopyTo(float[] array, int arrayOffset, int count) {
+      CopyTo(0, array, arrayOffset, count);
+    }
+
+    public void CopyTo(int relOffset, double[] array, int arrayOffset, int count) {
+      _byteBuffer.CopyTo(_offset + relOffset, array, arrayOffset, count);
+    }
+
+    public void CopyTo(double[] array, int arrayOffset, int count) {
+      CopyTo(0, array, arrayOffset, count);
+    }
+
+
+    public void CopyFrom(int relOffset, bool[] array, int arrayOffset, int count) {
+      _byteBuffer.CopyFrom(array, arrayOffset, _offset + relOffset, count);
+    }
+
+    public void CopyFrom(bool[] array, int arrayOffset, int count) {
+      CopyFrom(0, array, arrayOffset, count);
+    }
+
+    public void CopyFrom(int relOffset, byte[] array, int arrayOffset, int count) {
+      _byteBuffer.CopyFrom(array, arrayOffset, _offset + relOffset, count);
+    }
+
+    public void CopyFrom(byte[] array, int arrayOffset, int count) {
+      CopyFrom(0, array, arrayOffset, count);
+    }
+
+    public void CopyFrom(int relOffset, sbyte[] array, int arrayOffset, int count) {
+      _byteBuffer.CopyFrom(array, arrayOffset, _offset + relOffset, count);
+    }
+
+    public void CopyFrom(sbyte[] array, int arrayOffset, int count) {
+      CopyFrom(0, array, arrayOffset, count);
+    }
+
+    public void CopyFrom(int relOffset, short[] array, int arrayOffset, int count) {
+      _byteBuffer.CopyFrom(array, arrayOffset, _offset + relOffset, count);
+    }
+
+    public void CopyFrom(short[] array, int arrayOffset, int count) {
+      CopyFrom(0, array, arrayOffset, count);
+    }
+
+    public void CopyFrom(int relOffset, ushort[] array, int arrayOffset, int count) {
+      _byteBuffer.CopyFrom(array, arrayOffset, _offset + relOffset, count);
+    }
+
+    public void CopyFrom(ushort[] array, int arrayOffset, int count) {
+      CopyFrom(0, array, arrayOffset, count);
+    }
+
+    public void CopyFrom(int relOffset, int[] array, int arrayOffset, int count) {
+      _byteBuffer.CopyFrom(array, arrayOffset, _offset + relOffset, count);
+    }
+
+    public void CopyFrom(int[] array, int arrayOffset, int count) {
+      CopyFrom(0, array, arrayOffset, count);
+    }
+
+    public void CopyFrom(int relOffset, uint[] array, int arrayOffset, int count) {
+      _byteBuffer.CopyFrom(array, arrayOffset, _offset + relOffset, count);
+    }
+
+    public void CopyFrom(uint[] array, int arrayOffset, int count) {
+      CopyFrom(0, array, arrayOffset, count);
+    }
+
+    public void CopyFrom(int relOffset, long[] array, int arrayOffset, int count) {
+      _byteBuffer.CopyFrom(array, arrayOffset, _offset + relOffset, count);
+    }
+
+    public void CopyFrom(long[] array, int arrayOffset, int count) {
+      CopyFrom(0, array, arrayOffset, count);
+    }
+
+    public void CopyFrom(int relOffset, ulong[] array, int arrayOffset, int count) {
+      _byteBuffer.CopyFrom(array, arrayOffset, _offset + relOffset, count);
+    }
+
+    public void CopyFrom(ulong[] array, int arrayOffset, int count) {
+      CopyFrom(0, array, arrayOffset, count);
+    }
+
+    public void CopyFrom(int relOffset, float[] array, int arrayOffset, int count) {
+      _byteBuffer.CopyFrom(array, arrayOffset, _offset + relOffset, count);
+    }
+
+    public void CopyFrom(float[] array, int arrayOffset, int count) {
+      CopyFrom(0, array, arrayOffset, count);
+    }
+
+    public void CopyFrom(int relOffset, double[] array, int arrayOffset, int count) {
+      _byteBuffer.CopyFrom(array, arrayOffset, _offset + relOffset, count);
+    }
+
+    public void CopyFrom(double[] array, int arrayOffset, int count) {
+      CopyFrom(0, array, arrayOffset, count);
+    }
+
+
     public static void CreateFromOffset(ByteBuffer byteBuffer,
                                         int offsetOffset,
                                         out BufferPosition bufferPosition) {
