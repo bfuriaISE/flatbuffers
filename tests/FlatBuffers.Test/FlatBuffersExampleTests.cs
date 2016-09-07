@@ -15,6 +15,7 @@
  */
 
 using System.IO;
+using System.Linq;
 using System.Text;
 using MyGame.Example;
 
@@ -718,6 +719,8 @@ namespace FlatBuffers.Test
           Assert.IsTrue(monster.TryGetTestarrayofdoubles(out testarrayofdoubles));
           FloatVector testarrayoffloats;
           Assert.IsTrue(monster.TryGetTestarrayoffloats(out testarrayoffloats));
+          StringVector testarrayofstring;
+          Assert.IsTrue(monster.TryGetTestarrayofstring(out testarrayofstring));
 
           Assert.AreEqual(testarrayofbytes.Length, 3);
           Assert.AreEqual(testarrayoflongs.Length, 3);
@@ -726,6 +729,9 @@ namespace FlatBuffers.Test
           Assert.AreEqual(testarrayofshorts.Length, 3);
           Assert.AreEqual(testarrayofdoubles.Length, 3);
           Assert.AreEqual(testarrayoffloats.Length, 3);
+
+          Assert.AreEqual(testarrayofstring.Length, 2);
+
           for (int i = 0; i < 3; i++) {
             Assert.AreEqual(testarrayofbytes[i], i + 1);
             Assert.AreEqual(testarrayofshorts[i], i + 1);
@@ -735,6 +741,89 @@ namespace FlatBuffers.Test
             Assert.AreEqual(testarrayoffloats[i], i + 1);
             Assert.AreEqual(testarrayofdoubles[i], i + 1);
           }
+
+          Assert.IsTrue(testarrayofstring.SequenceEqual(new[]{"test1", "test2"}));
+
+          byte[] testarrayofbytesArray = testarrayofbytes.ToArray();
+          long[] testarrayoflongsArray = testarrayoflongs.ToArray();
+          bool[] testarrayofbools1Array = testarrayofbools1.ToArray();
+          int[] testarrayofintsArray = testarrayofints.ToArray();
+          short[] testarrayofshortsArray = testarrayofshorts.ToArray();
+          double[] testarrayofdoublesArray = testarrayofdoubles.ToArray();
+          float[] testarrayoffloatsArray = testarrayoffloats.ToArray();
+
+          Assert.AreEqual(testarrayofbytesArray.Length, testarrayofbytes.Length);
+          Assert.AreEqual(testarrayoflongsArray.Length, testarrayoflongs.Length);
+          Assert.AreEqual(testarrayofbools1Array.Length, testarrayofbools1.Length);
+          Assert.AreEqual(testarrayofintsArray.Length, testarrayofints.Length);
+          Assert.AreEqual(testarrayofshortsArray.Length, testarrayofshorts.Length);
+          Assert.AreEqual(testarrayofdoublesArray.Length, testarrayofdoubles.Length);
+          Assert.AreEqual(testarrayoffloatsArray.Length, testarrayoffloats.Length);
+
+          for (int i = 0; i < testarrayofbytes.Length; i++) {
+            Assert.AreEqual(testarrayofbytesArray[i], testarrayofbytes[i]);
+            Assert.AreEqual(testarrayoflongsArray[i], testarrayoflongs[i]);
+            Assert.AreEqual(testarrayofbools1Array[i], testarrayofbools1[i]);
+            Assert.AreEqual(testarrayofintsArray[i], testarrayofints[i]);
+            Assert.AreEqual(testarrayofshortsArray[i], testarrayofshorts[i]);
+            Assert.AreEqual(testarrayofdoublesArray[i], testarrayofdoubles[i]);
+            Assert.AreEqual(testarrayoffloatsArray[i], testarrayoffloats[i]);
+          }
+
+          System.Array.Reverse(testarrayofbytesArray);
+          System.Array.Reverse(testarrayoflongsArray);
+          System.Array.Reverse(testarrayofintsArray);
+          System.Array.Reverse(testarrayofshortsArray);
+          System.Array.Reverse(testarrayofdoublesArray);
+          System.Array.Reverse(testarrayoffloatsArray);
+
+          // invert
+          for (int i = 0; i < testarrayofbytes.Length; i++) {
+            testarrayofbools1Array[i] = !testarrayofbools1Array[i];
+          }
+
+          testarrayofbytes.CopyFrom(testarrayofbytesArray, 0);
+          testarrayoflongs.CopyFrom(testarrayoflongsArray, 0);
+          testarrayofbools1.CopyFrom(testarrayofbools1Array, 0);
+          testarrayofints.CopyFrom(testarrayofintsArray, 0);
+          testarrayofshorts.CopyFrom(testarrayofshortsArray, 0);
+          testarrayofdoubles.CopyFrom(testarrayofdoublesArray, 0);
+          testarrayoffloats.CopyFrom(testarrayoffloatsArray, 0);
+
+          for (int i = 0; i < 3; i++) {
+            Assert.AreEqual(testarrayofbytes[i], 3 - i);
+            Assert.AreEqual(testarrayofshorts[i], 3 - i);
+            Assert.AreEqual(testarrayofints[i], 3 - i);
+            Assert.AreEqual(testarrayoflongs[i], 3 - i);
+            Assert.AreEqual(testarrayofbools1[i], i != 0);
+            Assert.AreEqual(testarrayoffloats[i], 3 - i);
+            Assert.AreEqual(testarrayofdoubles[i], 3 - i);
+          }
+
+          testarrayofbytes.CopyFrom(testarrayofbytesArray, 2, 0, 1);
+          testarrayoflongs.CopyFrom(testarrayoflongsArray, 2, 0, 1);
+          testarrayofbools1.CopyFrom(testarrayofbools1Array, 2, 0, 1);
+          testarrayofints.CopyFrom(testarrayofintsArray, 2, 0, 1);
+          testarrayofshorts.CopyFrom(testarrayofshortsArray, 2, 0, 1);
+          testarrayofdoubles.CopyFrom(testarrayofdoublesArray, 2, 0, 1);
+          testarrayoffloats.CopyFrom(testarrayoffloatsArray, 2, 0, 1);
+
+          Assert.AreEqual(testarrayofbytes[0], 1);
+          Assert.AreEqual(testarrayofshorts[0], 1);
+          Assert.AreEqual(testarrayofints[0], 1);
+          Assert.AreEqual(testarrayoflongs[0], 1);
+          Assert.AreEqual(testarrayofbools1[0], true);
+          Assert.AreEqual(testarrayoffloats[0], 1);
+          Assert.AreEqual(testarrayofdoubles[0], 1);
+
+          Assert.IsTrue(testarrayofbytes.ToArray().SequenceEqual(testarrayofbytes.ToList()));
+          Assert.IsTrue(testarrayofshorts.ToArray().SequenceEqual(testarrayofshorts.ToList()));
+          Assert.IsTrue(testarrayofints.ToArray().SequenceEqual(testarrayofints.ToList()));
+          Assert.IsTrue(testarrayoflongs.ToArray().SequenceEqual(testarrayoflongs.ToList()));
+          Assert.IsTrue(testarrayofbools1.ToArray().SequenceEqual(testarrayofbools1.ToList()));
+          Assert.IsTrue(testarrayoffloats.ToArray().SequenceEqual(testarrayoffloats.ToList()));
+          Assert.IsTrue(testarrayofdoubles.ToArray().SequenceEqual(testarrayofdoubles.ToList()));
+          Assert.IsTrue(testarrayofstring.ToArray().SequenceEqual(testarrayofstring.ToList()));
         }
 
         [FlatBuffersTestMethod]

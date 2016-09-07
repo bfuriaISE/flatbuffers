@@ -201,6 +201,272 @@ namespace FlatBuffers {
     }
 
 
+    public void CopyTo(bool[] dstArray, int dstOffset) {
+      _bufferPosition.CopyTo(DataRelOffset, dstArray, dstOffset, VectorDataLength);
+    }
+
+    public void CopyTo(int srcOffset, bool[] dstArray, int dstOffset, int count) {
+      ValidateOffsetAndCount(srcOffset, count);
+      _bufferPosition.CopyTo(GetItemVecBufPosRelOffset(srcOffset, sizeof(byte)),
+                             dstArray,
+                             dstOffset,
+                             count);
+    }
+    
+    public void CopyTo(byte[] dstArray, int dstOffset) {
+      _bufferPosition.CopyTo(DataRelOffset, dstArray, dstOffset, VectorDataLength);
+    }
+
+    public void CopyTo(int srcOffset, byte[] dstArray, int dstOffset, int count) {
+      ValidateOffsetAndCount(srcOffset, count);
+      _bufferPosition.CopyTo(GetItemVecBufPosRelOffset(srcOffset, sizeof(byte)),
+                             dstArray,
+                             dstOffset,
+                             count);
+    }
+
+    public void CopyTo(sbyte[] dstArray, int dstOffset) {
+      _bufferPosition.CopyTo(DataRelOffset, dstArray, dstOffset, VectorDataLength);
+    }
+
+    public void CopyTo(int srcOffset, sbyte[] dstArray, int dstOffset, int count) {
+      ValidateOffsetAndCount(srcOffset, count);
+      _bufferPosition.CopyTo(GetItemVecBufPosRelOffset(srcOffset, sizeof(sbyte)),
+                             dstArray,
+                             dstOffset,
+                             count);
+    }
+
+    public void CopyTo(short[] dstArray, int dstOffset) {
+      _bufferPosition.CopyTo(DataRelOffset, dstArray, dstOffset, VectorDataLength);
+    }
+
+    public void CopyTo(int srcOffset, short[] dstArray, int dstOffset, int count) {
+      ValidateOffsetAndCount(srcOffset, count);
+      _bufferPosition.CopyTo(GetItemVecBufPosRelOffset(srcOffset, sizeof(short)),
+                             dstArray,
+                             dstOffset,
+                             count);
+    }
+
+    public void CopyTo(ushort[] dstArray, int dstOffset) {
+      _bufferPosition.CopyTo(DataRelOffset, dstArray, dstOffset, VectorDataLength);
+    }
+
+    public void CopyTo(int srcOffset, ushort[] dstArray, int dstOffset, int count) {
+      ValidateOffsetAndCount(srcOffset, count);
+      _bufferPosition.CopyTo(GetItemVecBufPosRelOffset(srcOffset, sizeof(ushort)),
+                             dstArray,
+                             dstOffset,
+                             count);
+    }
+
+    public void CopyTo(int[] dstArray, int dstOffset) {
+      _bufferPosition.CopyTo(DataRelOffset, dstArray, dstOffset, VectorDataLength);
+    }
+
+    public void CopyTo(int srcOffset, int[] dstArray, int dstOffset, int count) {
+      ValidateOffsetAndCount(srcOffset, count);
+      _bufferPosition.CopyTo(GetItemVecBufPosRelOffset(srcOffset, sizeof(int)),
+                             dstArray,
+                             dstOffset,
+                             count);
+    }
+
+    public void CopyTo(uint[] dstArray, int dstOffset) {
+      _bufferPosition.CopyTo(DataRelOffset, dstArray, dstOffset, VectorDataLength);
+    }
+
+    public void CopyTo(int srcOffset, uint[] dstArray, int dstOffset, int count) {
+      ValidateOffsetAndCount(srcOffset, count);
+      _bufferPosition.CopyTo(GetItemVecBufPosRelOffset(srcOffset, sizeof(uint)),
+                             dstArray,
+                             dstOffset,
+                             count);
+    }
+
+    public void CopyTo(long[] dstArray, int dstOffset) {
+      _bufferPosition.CopyTo(DataRelOffset, dstArray, dstOffset, VectorDataLength);
+    }
+
+    public void CopyTo(int srcOffset, long[] dstArray, int dstOffset, int count) {
+      ValidateOffsetAndCount(srcOffset, count);
+      _bufferPosition.CopyTo(GetItemVecBufPosRelOffset(srcOffset, sizeof(long)),
+                             dstArray,
+                             dstOffset,
+                             count);
+    }
+
+    public void CopyTo(ulong[] dstArray, int dstOffset) {
+      _bufferPosition.CopyTo(DataRelOffset, dstArray, dstOffset, VectorDataLength);
+    }
+
+    public void CopyTo(int srcOffset, ulong[] dstArray, int dstOffset, int count) {
+      ValidateOffsetAndCount(srcOffset, count);
+      _bufferPosition.CopyTo(GetItemVecBufPosRelOffset(srcOffset, sizeof(ulong)),
+                             dstArray,
+                             dstOffset,
+                             count);
+    }
+
+    public void CopyTo(float[] dstArray, int dstOffset) {
+      _bufferPosition.CopyTo(DataRelOffset, dstArray, dstOffset, VectorDataLength);
+    }
+
+    public void CopyTo(int srcOffset, float[] dstArray, int dstOffset, int count) {
+      ValidateOffsetAndCount(srcOffset, count);
+      _bufferPosition.CopyTo(GetItemVecBufPosRelOffset(srcOffset, sizeof(float)),
+                             dstArray,
+                             dstOffset,
+                             count);
+    }
+
+    public void CopyTo(double[] dstArray, int dstOffset) {
+      _bufferPosition.CopyTo(DataRelOffset, dstArray, dstOffset, VectorDataLength);
+    }
+
+    public void CopyTo(int srcOffset, double[] dstArray, int dstOffset, int count) {
+      ValidateOffsetAndCount(srcOffset, count);
+      _bufferPosition.CopyTo(GetItemVecBufPosRelOffset(srcOffset, sizeof(double)),
+                             dstArray,
+                             dstOffset,
+                             count);
+    }
+
+
+    public void CopyFrom(bool[] srcArray, int srcOffset) {
+      _bufferPosition.CopyFrom(DataRelOffset, srcArray, srcOffset, VectorDataLength);
+    }
+
+    public void CopyFrom(bool[] srcArray, int srcOffset, int dstOffset, int count) {
+      ValidateOffsetAndCount(dstOffset, count);
+      _bufferPosition.CopyFrom(GetItemVecBufPosRelOffset(dstOffset, sizeof(byte)),
+                               srcArray,
+                               srcOffset,
+                               count);
+    }
+
+    public void CopyFrom(byte[] srcArray, int srcOffset) {
+      _bufferPosition.CopyFrom(DataRelOffset, srcArray, srcOffset, VectorDataLength);
+    }
+
+    public void CopyFrom(byte[] srcArray, int srcOffset, int dstOffset, int count) {
+      ValidateOffsetAndCount(dstOffset, count);
+      _bufferPosition.CopyFrom(GetItemVecBufPosRelOffset(dstOffset, sizeof(byte)),
+                               srcArray,
+                               srcOffset,
+                               count);
+    }
+
+    public void CopyFrom(sbyte[] srcArray, int srcOffset) {
+      _bufferPosition.CopyFrom(DataRelOffset, srcArray, srcOffset, VectorDataLength);
+    }
+
+    public void CopyFrom(sbyte[] srcArray, int srcOffset, int dstOffset, int count) {
+      ValidateOffsetAndCount(dstOffset, count);
+      _bufferPosition.CopyFrom(GetItemVecBufPosRelOffset(dstOffset, sizeof(sbyte)),
+                               srcArray,
+                               srcOffset,
+                               count);
+    }
+
+    public void CopyFrom(short[] srcArray, int srcOffset) {
+      _bufferPosition.CopyFrom(DataRelOffset, srcArray, srcOffset, VectorDataLength);
+    }
+
+    public void CopyFrom(short[] srcArray, int srcOffset, int dstOffset, int count) {
+      ValidateOffsetAndCount(dstOffset, count);
+      _bufferPosition.CopyFrom(GetItemVecBufPosRelOffset(dstOffset, sizeof(short)),
+                               srcArray,
+                               srcOffset,
+                               count);
+    }
+
+    public void CopyFrom(ushort[] srcArray, int srcOffset) {
+      _bufferPosition.CopyFrom(DataRelOffset, srcArray, srcOffset, VectorDataLength);
+    }
+
+    public void CopyFrom(ushort[] srcArray, int srcOffset, int dstOffset, int count) {
+      ValidateOffsetAndCount(dstOffset, count);
+      _bufferPosition.CopyFrom(GetItemVecBufPosRelOffset(dstOffset, sizeof(ushort)),
+                               srcArray,
+                               srcOffset,
+                               count);
+    }
+
+    public void CopyFrom(int[] srcArray, int srcOffset) {
+      _bufferPosition.CopyFrom(DataRelOffset, srcArray, srcOffset, VectorDataLength);
+    }
+
+    public void CopyFrom(int[] srcArray, int srcOffset, int dstOffset, int count) {
+      ValidateOffsetAndCount(dstOffset, count);
+      _bufferPosition.CopyFrom(GetItemVecBufPosRelOffset(dstOffset, sizeof(int)),
+                               srcArray,
+                               srcOffset,
+                               count);
+    }
+
+    public void CopyFrom(uint[] srcArray, int srcOffset) {
+      _bufferPosition.CopyFrom(DataRelOffset, srcArray, srcOffset, VectorDataLength);
+    }
+
+    public void CopyFrom(uint[] srcArray, int srcOffset, int dstOffset, int count) {
+      ValidateOffsetAndCount(dstOffset, count);
+      _bufferPosition.CopyFrom(GetItemVecBufPosRelOffset(dstOffset, sizeof(uint)),
+                               srcArray,
+                               srcOffset,
+                               count);
+    }
+
+    public void CopyFrom(long[] srcArray, int srcOffset) {
+      _bufferPosition.CopyFrom(DataRelOffset, srcArray, srcOffset, VectorDataLength);
+    }
+
+    public void CopyFrom(long[] srcArray, int srcOffset, int dstOffset, int count) {
+      ValidateOffsetAndCount(dstOffset, count);
+      _bufferPosition.CopyFrom(GetItemVecBufPosRelOffset(dstOffset, sizeof(long)),
+                               srcArray,
+                               srcOffset,
+                               count);
+    }
+
+    public void CopyFrom(ulong[] srcArray, int srcOffset) {
+      _bufferPosition.CopyFrom(DataRelOffset, srcArray, srcOffset, VectorDataLength);
+    }
+
+    public void CopyFrom(ulong[] srcArray, int srcOffset, int dstOffset, int count) {
+      ValidateOffsetAndCount(dstOffset, count);
+      _bufferPosition.CopyFrom(GetItemVecBufPosRelOffset(dstOffset, sizeof(ulong)),
+                               srcArray,
+                               srcOffset,
+                               count);
+    }
+
+    public void CopyFrom(float[] srcArray, int srcOffset) {
+      _bufferPosition.CopyFrom(DataRelOffset, srcArray, srcOffset, VectorDataLength);
+    }
+
+    public void CopyFrom(float[] srcArray, int srcOffset, int dstOffset, int count) {
+      ValidateOffsetAndCount(dstOffset, count);
+      _bufferPosition.CopyFrom(GetItemVecBufPosRelOffset(dstOffset, sizeof(float)),
+                               srcArray,
+                               srcOffset,
+                               count);
+    }
+
+    public void CopyFrom(double[] srcArray, int srcOffset) {
+      _bufferPosition.CopyFrom(DataRelOffset, srcArray, srcOffset, VectorDataLength);
+    }
+
+    public void CopyFrom(double[] srcArray, int srcOffset, int dstOffset, int count) {
+      ValidateOffsetAndCount(dstOffset, count);
+      _bufferPosition.CopyFrom(GetItemVecBufPosRelOffset(dstOffset, sizeof(double)),
+                               srcArray,
+                               srcOffset,
+                               count);
+    }
+
+
     public string GetVectorAsString() {
       return _bufferPosition.GetString(DataRelOffset, VectorDataLength);
     }
@@ -251,6 +517,15 @@ namespace FlatBuffers {
       BufferPosition stringItemVectorPosition;
       GetItemBufferPositionFromOffset(vectorItemOffset, out stringItemVectorPosition);
       stringItemVectorAccessor = new VectorAccessor(ref stringItemVectorPosition);
+    }
+
+    private void ValidateOffsetAndCount(int srcOffset, int count) {
+      int vectorDataLength = VectorDataLength;
+
+      if ((uint)srcOffset > vectorDataLength ||
+          (uint)count > vectorDataLength - srcOffset) {
+        throw new IndexOutOfRangeException();
+      }
     }
 
 

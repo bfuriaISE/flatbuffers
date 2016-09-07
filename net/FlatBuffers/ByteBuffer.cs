@@ -134,14 +134,16 @@ namespace FlatBuffers
 
         protected void Dispose(bool disposing) 
         {
-            if (!_isDisposed) {
+            if (!_isDisposed) 
+            {
+                _isDisposed = true;
+
 #if PINNED_BYTEBUFFER
                 if (_buffer != null) 
                 {
                     _pinningHandle.Free();
                 }
 #endif
-                _isDisposed = true;
             }
         }
 
@@ -266,7 +268,8 @@ namespace FlatBuffers
 #else
                 _buffer.Length;
 #endif
-            if ((uint)offset > bufferLength ||
+            if (_isDisposed ||
+                (uint)offset > bufferLength ||
                 (uint)length > bufferLength - offset)
             { 
                 ThrowOffsetAndLengthAssertionFailed();

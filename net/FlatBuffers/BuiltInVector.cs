@@ -49,6 +49,37 @@ namespace FlatBuffers {
       return byteBufferSegment;
     }
 
+    public void CopyTo(byte[] array, int offset) {
+      _vectorAccessor.CopyTo(array, offset);
+    }
+
+    public void CopyTo(int srcOffset, byte[] dstArray, int dstOffset, int count) {
+      _vectorAccessor.CopyTo(srcOffset, dstArray, dstOffset, count);
+    }
+
+    public void CopyFrom(byte[] srcArray, int srcOffset) {
+      _vectorAccessor.CopyFrom(srcArray, srcOffset);
+    }
+
+    public void CopyFrom(byte[] srcArray, int srcOffset, int dstOffset, int count) {
+      _vectorAccessor.CopyFrom(srcArray, srcOffset, dstOffset, count);
+    }
+
+    public byte[] ToArray() {
+      byte[] array = new byte[Length];
+      _vectorAccessor.CopyTo(array, 0);
+      return array;
+    }
+
+    public List<byte> ToList() {
+      int length = Length;
+      List<byte> list = new List<byte>(length);
+      for (int i = 0; i < length; i++) {
+        list.Add(this[i]);
+      }
+      return list;
+    } 
+
     public VectorEnumerator<byte, ByteVector> GetEnumerator() {
       return new VectorEnumerator<byte, ByteVector>(ref this);
     } 
@@ -106,6 +137,37 @@ namespace FlatBuffers {
       ByteBufferSegment byteBufferSegment;
       GetAsByteBufferSegment(out byteBufferSegment);
       return byteBufferSegment;
+    }
+
+    public void CopyTo(sbyte[] array, int offset) {
+      _vectorAccessor.CopyTo(array, offset);
+    }
+
+    public void CopyTo(int srcOffset, sbyte[] dstArray, int dstOffset, int count) {
+      _vectorAccessor.CopyTo(srcOffset, dstArray, dstOffset, count);
+    }
+
+    public void CopyFrom(sbyte[] srcArray, int srcOffset) {
+      _vectorAccessor.CopyFrom(srcArray, srcOffset);
+    }
+
+    public void CopyFrom(sbyte[] srcArray, int srcOffset, int dstOffset, int count) {
+      _vectorAccessor.CopyFrom(srcArray, srcOffset, dstOffset, count);
+    }
+
+    public sbyte[] ToArray() {
+      sbyte[] array = new sbyte[Length];
+      _vectorAccessor.CopyTo(array, 0);
+      return array;
+    }
+
+    public List<sbyte> ToList() {
+      int length = Length;
+      List<sbyte> list = new List<sbyte>(length);
+      for (int i = 0; i < length; i++) {
+        list.Add(this[i]);
+      }
+      return list;
     }
 
     public VectorEnumerator<sbyte, SbyteVector> GetEnumerator() {
@@ -167,6 +229,37 @@ namespace FlatBuffers {
       return byteBufferSegment;
     }
 
+    public void CopyTo(bool[] array, int offset) {
+      _vectorAccessor.CopyTo(array, offset);
+    }
+
+    public void CopyTo(int srcOffset, bool[] dstArray, int dstOffset, int count) {
+      _vectorAccessor.CopyTo(srcOffset, dstArray, dstOffset, count);
+    }
+
+    public void CopyFrom(bool[] srcArray, int srcOffset) {
+      _vectorAccessor.CopyFrom(srcArray, srcOffset);
+    }
+
+    public void CopyFrom(bool[] srcArray, int srcOffset, int dstOffset, int count) {
+      _vectorAccessor.CopyFrom(srcArray, srcOffset, dstOffset, count);
+    }
+
+    public bool[] ToArray() {
+      bool[] array = new bool[Length];
+      _vectorAccessor.CopyTo(array, 0);
+      return array;
+    }
+
+    public List<bool> ToList() {
+      int length = Length;
+      List<bool> list = new List<bool>(length);
+      for (int i = 0; i < length; i++) {
+        list.Add(this[i]);
+      }
+      return list;
+    }
+
     public VectorEnumerator<bool, BoolVector> GetEnumerator() {
       return new VectorEnumerator<bool, BoolVector>(ref this);
     }
@@ -224,6 +317,37 @@ namespace FlatBuffers {
       ByteBufferSegment byteBufferSegment;
       GetAsByteBufferSegment(out byteBufferSegment);
       return byteBufferSegment;
+    }
+
+    public void CopyTo(short[] array, int offset) {
+      _vectorAccessor.CopyTo(array, offset);
+    }
+
+    public void CopyTo(int srcOffset, short[] dstArray, int dstOffset, int count) {
+      _vectorAccessor.CopyTo(srcOffset, dstArray, dstOffset, count);
+    }
+
+    public void CopyFrom(short[] srcArray, int srcOffset) {
+      _vectorAccessor.CopyFrom(srcArray, srcOffset);
+    }
+
+    public void CopyFrom(short[] srcArray, int srcOffset, int dstOffset, int count) {
+      _vectorAccessor.CopyFrom(srcArray, srcOffset, dstOffset, count);
+    }
+
+    public short[] ToArray() {
+      short[] array = new short[Length];
+      _vectorAccessor.CopyTo(array, 0);
+      return array;
+    }
+
+    public List<short> ToList() {
+      int length = Length;
+      List<short> list = new List<short>(length);
+      for (int i = 0; i < length; i++) {
+        list.Add(this[i]);
+      }
+      return list;
     }
 
     public VectorEnumerator<short, ShortVector> GetEnumerator() {
@@ -285,6 +409,37 @@ namespace FlatBuffers {
       return byteBufferSegment;
     }
 
+    public void CopyTo(ushort[] array, int offset) {
+      _vectorAccessor.CopyTo(array, offset);
+    }
+
+    public void CopyTo(int srcOffset, ushort[] dstArray, int dstOffset, int count) {
+      _vectorAccessor.CopyTo(srcOffset, dstArray, dstOffset, count);
+    }
+
+    public void CopyFrom(ushort[] srcArray, int srcOffset) {
+      _vectorAccessor.CopyFrom(srcArray, srcOffset);
+    }
+
+    public void CopyFrom(ushort[] srcArray, int srcOffset, int dstOffset, int count) {
+      _vectorAccessor.CopyFrom(srcArray, srcOffset, dstOffset, count);
+    }
+
+    public ushort[] ToArray() {
+      ushort[] array = new ushort[Length];
+      _vectorAccessor.CopyTo(array, 0);
+      return array;
+    }
+
+    public List<ushort> ToList() {
+      int length = Length;
+      List<ushort> list = new List<ushort>(length);
+      for (int i = 0; i < length; i++) {
+        list.Add(this[i]);
+      }
+      return list;
+    }
+    
     public VectorEnumerator<ushort, UshortVector> GetEnumerator() {
       return new VectorEnumerator<ushort, UshortVector>(ref this);
     }
@@ -342,6 +497,37 @@ namespace FlatBuffers {
       ByteBufferSegment byteBufferSegment;
       GetAsByteBufferSegment(out byteBufferSegment);
       return byteBufferSegment;
+    }
+
+    public void CopyTo(int[] array, int offset) {
+      _vectorAccessor.CopyTo(array, offset);
+    }
+
+    public void CopyTo(int srcOffset, int[] dstArray, int dstOffset, int count) {
+      _vectorAccessor.CopyTo(srcOffset, dstArray, dstOffset, count);
+    }
+
+    public void CopyFrom(int[] srcArray, int srcOffset) {
+      _vectorAccessor.CopyFrom(srcArray, srcOffset);
+    }
+
+    public void CopyFrom(int[] srcArray, int srcOffset, int dstOffset, int count) {
+      _vectorAccessor.CopyFrom(srcArray, srcOffset, dstOffset, count);
+    }
+
+    public int[] ToArray() {
+      int[] array = new int[Length];
+      _vectorAccessor.CopyTo(array, 0);
+      return array;
+    }
+
+    public List<int> ToList() {
+      int length = Length;
+      List<int> list = new List<int>(length);
+      for (int i = 0; i < length; i++) {
+        list.Add(this[i]);
+      }
+      return list;
     }
 
     public VectorEnumerator<int, IntVector> GetEnumerator() {
@@ -403,6 +589,37 @@ namespace FlatBuffers {
       return byteBufferSegment;
     }
 
+    public void CopyTo(uint[] array, int offset) {
+      _vectorAccessor.CopyTo(array, offset);
+    }
+
+    public void CopyTo(int srcOffset, uint[] dstArray, int dstOffset, int count) {
+      _vectorAccessor.CopyTo(srcOffset, dstArray, dstOffset, count);
+    }
+
+    public void CopyFrom(uint[] srcArray, int srcOffset) {
+      _vectorAccessor.CopyFrom(srcArray, srcOffset);
+    }
+
+    public void CopyFrom(uint[] srcArray, int srcOffset, int dstOffset, int count) {
+      _vectorAccessor.CopyFrom(srcArray, srcOffset, dstOffset, count);
+    }
+
+    public uint[] ToArray() {
+      uint[] array = new uint[Length];
+      _vectorAccessor.CopyTo(array, 0);
+      return array;
+    }
+
+    public List<uint> ToList() {
+      int length = Length;
+      List<uint> list = new List<uint>(length);
+      for (int i = 0; i < length; i++) {
+        list.Add(this[i]);
+      }
+      return list;
+    }
+
     public VectorEnumerator<uint, UintVector> GetEnumerator() {
       return new VectorEnumerator<uint, UintVector>(ref this);
     }
@@ -462,6 +679,37 @@ namespace FlatBuffers {
       return byteBufferSegment;
     }
 
+    public void CopyTo(long[] array, int offset) {
+      _vectorAccessor.CopyTo(array, offset);
+    }
+
+    public void CopyTo(int srcOffset, long[] dstArray, int dstOffset, int count) {
+      _vectorAccessor.CopyTo(srcOffset, dstArray, dstOffset, count);
+    }
+
+    public void CopyFrom(long[] srcArray, int srcOffset) {
+      _vectorAccessor.CopyFrom(srcArray, srcOffset);
+    }
+
+    public void CopyFrom(long[] srcArray, int srcOffset, int dstOffset, int count) {
+      _vectorAccessor.CopyFrom(srcArray, srcOffset, dstOffset, count);
+    }
+
+    public long[] ToArray() {
+      long[] array = new long[Length];
+      _vectorAccessor.CopyTo(array, 0);
+      return array;
+    }
+
+    public List<long> ToList() {
+      int length = Length;
+      List<long> list = new List<long>(length);
+      for (int i = 0; i < length; i++) {
+        list.Add(this[i]);
+      }
+      return list;
+    }
+
     public VectorEnumerator<long, LongVector> GetEnumerator() {
       return new VectorEnumerator<long, LongVector>(ref this);
     }
@@ -519,6 +767,37 @@ namespace FlatBuffers {
       ByteBufferSegment byteBufferSegment;
       GetAsByteBufferSegment(out byteBufferSegment);
       return byteBufferSegment;
+    }
+
+    public void CopyTo(ulong[] array, int offset) {
+      _vectorAccessor.CopyTo(array, offset);
+    }
+
+    public void CopyTo(int srcOffset, ulong[] dstArray, int dstOffset, int count) {
+      _vectorAccessor.CopyTo(srcOffset, dstArray, dstOffset, count);
+    }
+
+    public void CopyFrom(ulong[] srcArray, int srcOffset) {
+      _vectorAccessor.CopyFrom(srcArray, srcOffset);
+    }
+
+    public void CopyFrom(ulong[] srcArray, int srcOffset, int dstOffset, int count) {
+      _vectorAccessor.CopyFrom(srcArray, srcOffset, dstOffset, count);
+    }
+
+    public ulong[] ToArray() {
+      ulong[] array = new ulong[Length];
+      _vectorAccessor.CopyTo(array, 0);
+      return array;
+    }
+
+    public List<ulong> ToList() {
+      int length = Length;
+      List<ulong> list = new List<ulong>(length);
+      for (int i = 0; i < length; i++) {
+        list.Add(this[i]);
+      }
+      return list;
     }
 
     public VectorEnumerator<ulong, UlongVector> GetEnumerator() {
@@ -584,6 +863,37 @@ namespace FlatBuffers {
       return new VectorEnumerator<float, FloatVector>(ref this);
     }
 
+    public void CopyTo(float[] array, int offset) {
+      _vectorAccessor.CopyTo(array, offset);
+    }
+
+    public void CopyTo(int srcOffset, float[] dstArray, int dstOffset, int count) {
+      _vectorAccessor.CopyTo(srcOffset, dstArray, dstOffset, count);
+    }
+
+    public void CopyFrom(float[] srcArray, int srcOffset) {
+      _vectorAccessor.CopyFrom(srcArray, srcOffset);
+    }
+
+    public void CopyFrom(float[] srcArray, int srcOffset, int dstOffset, int count) {
+      _vectorAccessor.CopyFrom(srcArray, srcOffset, dstOffset, count);
+    }
+
+    public float[] ToArray() {
+      float[] array = new float[Length];
+      _vectorAccessor.CopyTo(array, 0);
+      return array;
+    }
+
+    public List<float> ToList() {
+      int length = Length;
+      List<float> list = new List<float>(length);
+      for (int i = 0; i < length; i++) {
+        list.Add(this[i]);
+      }
+      return list;
+    }
+
     IEnumerator<float> IEnumerable<float>.GetEnumerator() {
       return GetEnumerator();
     }
@@ -637,6 +947,37 @@ namespace FlatBuffers {
       ByteBufferSegment byteBufferSegment;
       GetAsByteBufferSegment(out byteBufferSegment);
       return byteBufferSegment;
+    }
+
+    public void CopyTo(double[] array, int offset) {
+      _vectorAccessor.CopyTo(array, offset);
+    }
+
+    public void CopyTo(int srcOffset, double[] dstArray, int dstOffset, int count) {
+      _vectorAccessor.CopyTo(srcOffset, dstArray, dstOffset, count);
+    }
+
+    public void CopyFrom(double[] srcArray, int srcOffset) {
+      _vectorAccessor.CopyFrom(srcArray, srcOffset);
+    }
+
+    public void CopyFrom(double[] srcArray, int srcOffset, int dstOffset, int count) {
+      _vectorAccessor.CopyFrom(srcArray, srcOffset, dstOffset, count);
+    }
+
+    public double[] ToArray() {
+      double[] array = new double[Length];
+      _vectorAccessor.CopyTo(array, 0);
+      return array;
+    }
+
+    public List<double> ToList() {
+      int length = Length;
+      List<double> list = new List<double>(length);
+      for (int i = 0; i < length; i++) {
+        list.Add(this[i]);
+      }
+      return list;
     }
 
     public VectorEnumerator<double, DoubleVector> GetEnumerator() {
@@ -718,6 +1059,42 @@ namespace FlatBuffers {
       return byteBufferSegment;
     }
 
+    public void CopyTo(string[] array, int offset) {
+      CopyTo(0, array, offset, Length);
+    }
+
+    public void CopyTo(int srcOffset, string[] dstArray, int dstOffset, int count) {
+      int length = Length;
+      if ((uint)srcOffset > length ||
+          (uint)count > length - srcOffset ||
+          (uint)dstOffset > dstArray.Length || 
+          (uint)count > dstArray.Length - dstOffset) {
+        throw new IndexOutOfRangeException();
+      }
+
+      for (int i = 0; i < count; i++) {
+        dstArray[dstOffset + i] = this[srcOffset + i];
+      }
+    }
+
+    public string[] ToArray() {
+      int length = Length;
+      string[] array = new string[length];
+      for (int i = 0; i < length; i++) {
+        array[i] = this[i];
+      }
+      return array;
+    }
+
+    public List<string> ToList() {
+      int length = Length;
+      List<string> list = new List<string>(length);
+      for (int i = 0; i < length; i++) {
+        list.Add(this[i]);
+      }
+      return list;
+    }
+
     public VectorEnumerator<string, StringVector> GetEnumerator() {
       return new VectorEnumerator<string, StringVector>(ref this);
     }
@@ -729,7 +1106,6 @@ namespace FlatBuffers {
     IEnumerator IEnumerable.GetEnumerator() {
       return GetEnumerator();
     }
-
 
     private VectorAccessor _vectorAccessor;
   }
