@@ -15,6 +15,7 @@
  */
 
 using System.IO;
+using System.Linq;
 using System.Text;
 using MyGame.Example;
 
@@ -391,6 +392,473 @@ namespace FlatBuffers.Test
           var mons = Monster.GetRootAsMonster(fbb2.DataBuffer);
           var nestedMonsterSegment = mons.GetTestnestedflatbufferBufferSegment();
           var nestedMonster = Monster.GetRootAsMonster(nestedMonsterSegment.Value);
+
+          Assert.AreEqual(nestedMonsterMana, nestedMonster.Mana);
+          Assert.AreEqual(nestedMonsterHp, nestedMonster.Hp);
+          Assert.AreEqual(nestedMonsterName, nestedMonster.Name);
+        }
+
+        [FlatBuffersTestMethod]
+        public void CanCreateNewFlatBufferFromScratch_TestStruct() {
+          // Second, let's create a FlatBuffer from scratch in C#, and test it also.
+          // We use an initial size of 1 to exercise the reallocation algorithm,
+          // normally a size larger than the typical FlatBuffer you generate would be
+          // better for performance.
+          var fbb = new FlatBufferBuilder(1);
+
+          // We set up the same values as monsterdata.json:
+
+          var str = fbb.CreateString("MyMonster");
+          var test1 = fbb.CreateString("test1");
+          var test2 = fbb.CreateString("test2");
+
+
+          Monster.StartInventoryVector(fbb, 5);
+          for (int i = 4; i >= 0; i--) {
+            fbb.AddByte((byte)i);
+          }
+          var inv = fbb.EndVector();
+
+          var fred = fbb.CreateString("Fred");
+          Monster.StartMonster(fbb);
+          Monster.AddName(fbb, fred);
+          var mon2 = Monster.EndMonster(fbb);
+
+          Monster.StartTest4Vector(fbb, 2);
+          MyGame.Example.Test.CreateTest(fbb, (short)10, (sbyte)20);
+          MyGame.Example.Test.CreateTest(fbb, (short)30, (sbyte)40);
+          var test4 = fbb.EndVector();
+
+          Monster.StartTestarrayofstringVector(fbb, 2);
+          fbb.AddOffset(test2.Value);
+          fbb.AddOffset(test1.Value);
+          var testArrayOfString = fbb.EndVector();
+
+          var testArrayOfBytes = Monster.CreateTestarrayofbytesVector(fbb, new byte[] { 0x1, 0x2, 0x3 });
+          var testArrayOfLongs = Monster.CreateTestarrayoflongsVector(fbb, new long[] { 1, 2, 3 });
+          var testArrayOfBools1 = Monster.CreateTestarrayofbools1Vector(fbb, new[] { true, false, false });
+          var testArrayOfInts = Monster.CreateTestarrayofintsVector(fbb, new[] { 1, 2, 3 });
+          var testArrayOfShorts = Monster.CreateTestarrayofshortsVector(fbb, new short[] { 1, 2, 3 });
+          var testArrayOfDoubles = Monster.CreateTestarrayofdoublesVector(fbb, new[] { 1.0, 2.0, 3.0 });
+          var testArrayOfFloats = Monster.CreateTestarrayoffloatsVector(fbb, new[] { 1.0F, 2.0F, 3.0F });
+
+          Monster.StartMonster(fbb);
+          Monster.AddPos(fbb, Vec3.CreateVec3(fbb, 1.0f, 2.0f, 3.0f, 3.0,
+                                                   Color.Green, (short)5, (sbyte)6));
+          Monster.AddHp(fbb, (short)80);
+          Monster.AddName(fbb, str);
+          Monster.AddInventory(fbb, inv);
+          Monster.AddTestType(fbb, Any.Monster);
+          Monster.AddTest(fbb, mon2.Value);
+          Monster.AddTest4(fbb, test4);
+          Monster.AddTestarrayofstring(fbb, testArrayOfString);
+          Monster.AddTestbool(fbb, false);
+
+          Monster.AddTestarrayofbytes(fbb, testArrayOfBytes);
+          Monster.AddTestarrayofbools1(fbb, testArrayOfBools1);
+          Monster.AddTestarrayofshorts(fbb, testArrayOfShorts);
+          Monster.AddTestarrayofints(fbb, testArrayOfInts);
+          Monster.AddTestarrayoffloats(fbb, testArrayOfFloats);
+          Monster.AddTestarrayoflongs(fbb, testArrayOfLongs);
+          Monster.AddTestarrayofdoubles(fbb, testArrayOfDoubles);
+
+          var mon = Monster.EndMonster(fbb);
+
+          Monster.FinishMonsterBuffer(fbb, mon);
+
+
+          // Dump to output directory so we can inspect later, if needed
+          using (var ms = new MemoryStream(fbb.DataBuffer.Data, fbb.DataBuffer.Position, fbb.Offset)) {
+            var data = ms.ToArray();
+            File.WriteAllBytes(@"Resources/monsterdata_cstest.mon", data);
+          }
+
+          // Now assert the buffer
+          TestBuffer_TestStruct(fbb.DataBuffer);
+
+          //Attempt to mutate Monster fields and check whether the buffer has been mutated properly
+          // revert to original values after testing
+          MonsterStruct monster = MonsterStruct.GetRootAsMonster(fbb.DataBuffer);
+
+          // mana is optional and does not exist in the buffer so the mutation should fail
+          // the mana field should retain its default value
+          Assert.AreEqual(monster.MutateMana((short)10), false);
+          Assert.AreEqual(monster.Mana, (short)150);
+
+          // testType is an existing field and mutating it should succeed
+          Assert.AreEqual(monster.TestType, Any.Monster);
+          Assert.AreEqual(monster.MutateTestType(Any.NONE), true);
+          Assert.AreEqual(monster.TestType, Any.NONE);
+          Assert.AreEqual(monster.MutateTestType(Any.Monster), true);
+          Assert.AreEqual(monster.TestType, Any.Monster);
+
+          ByteVector inventory;
+          bool hasInventory = monster.TryGetInventory(out inventory);
+          Assert.AreEqual(hasInventory, true);
+
+          //mutate the inventory vector
+          for (int i = 0, length = inventory.Length; i < length; i++) {
+            inventory[i] = (byte)(i + 1);
+          }
+          
+          // re-acquire the vector to try to be extra certain we didn't write to the wrong spot
+          hasInventory = monster.TryGetInventory(out inventory);
+          Assert.AreEqual(hasInventory, true);
+
+          for (int i = 0, length = inventory.Length; i < length; i++) {
+            Assert.AreEqual(inventory[i], i + 1);
+          }
+
+          //reverse mutation
+          for (int i = 0, length = inventory.Length; i < length; i++) {
+            inventory[i] = (byte)i;
+          }
+
+          // get a struct field and edit one of its fields
+          Vec3Struct pos = monster.Pos.GetValueOrDefault();
+          Assert.AreEqual(pos.X, 1.0f);
+          pos.MutateX(55.0f);
+          Assert.AreEqual(pos.X, 55.0f);
+          pos.MutateX(1.0f);
+          Assert.AreEqual(pos.X, 1.0f);
+
+          TestStruct test3A = pos.Test3;
+          Assert.AreEqual(test3A.A, 5);
+          Assert.AreEqual(test3A.B, 6);
+          TestStruct test3B;
+          pos.GetTest3(out test3B);
+          Assert.AreEqual(test3B.A, 5);
+          Assert.AreEqual(test3B.B, 6);
+
+          Vec3Struct pos1;
+          Assert.IsTrue(monster.TryGetPos(out pos1));
+          Assert.AreEqual(pos1.X, 1.0f);
+          pos.MutateX(55.0f);
+          Assert.AreEqual(pos1.X, 55.0f);
+          pos.MutateX(1.0f);
+          Assert.AreEqual(pos1.X, 1.0f);
+
+          TestBuffer_TestStruct(fbb.DataBuffer);
+        }
+
+        private void TestBuffer_TestStruct(ByteBuffer bb) {
+          var monster = MonsterStruct.GetRootAsMonster(bb);
+          MonsterStruct outMonster;
+          MonsterStruct.GetRootAsMonster(bb, out outMonster);
+
+          Assert.AreEqual(80, monster.Hp);
+          Assert.AreEqual(150, monster.Mana);
+          Assert.AreEqual("MyMonster", monster.Name);
+
+          var pos = monster.Pos.GetValueOrDefault();
+          Assert.AreEqual(1.0f, pos.X);
+          Assert.AreEqual(2.0f, pos.Y);
+          Assert.AreEqual(3.0f, pos.Z);
+
+          Assert.AreEqual(3.0f, pos.Test1);
+          Assert.AreEqual(Color.Green, pos.Test2);
+          var t = pos.Test3;
+          Assert.AreEqual((short)5, t.A);
+          Assert.AreEqual((sbyte)6, t.B);
+
+          Assert.AreEqual(Any.Monster, monster.TestType);
+
+          MonsterStruct monster2;
+          Assert.IsTrue(monster.TryGetTestAsMonster(out monster2));
+          Assert.AreEqual("Fred", monster2.Name);
+
+          ByteVector inventory;
+          Assert.IsTrue(monster.TryGetInventory(out inventory));
+          Assert.AreEqual(5, inventory.Length);
+          var invsum = 0;
+          for (int i = 0, length = inventory.Length; i < length; i++) {
+            invsum += inventory[i];
+          }
+          Assert.AreEqual(10, invsum);
+
+          TestVector test4;
+          Assert.IsTrue(monster.TryGetTest4(out test4));
+          var test0 = test4[0];
+          TestStruct test1;
+          test4.GetItem(1, out test1);
+          Assert.AreEqual(2, test4.Length);
+
+          Assert.AreEqual(100, test0.A + test0.B + test1.A + test1.B);
+
+          StringVector testarrayofstring;
+          Assert.IsTrue(monster.TryGetTestarrayofstring(out testarrayofstring));
+          Assert.AreEqual(2, testarrayofstring.Length);
+          Assert.AreEqual("test1", testarrayofstring[0]);
+          Assert.AreEqual("test2", testarrayofstring[1]);
+
+          Assert.AreEqual(false, monster.Testbool);
+
+          var nameBytes = monster.GetNameBytes().Value;
+          Assert.AreEqual("MyMonster", Encoding.UTF8.GetString(nameBytes.Array, nameBytes.Offset, nameBytes.Count));
+        }
+
+        [FlatBuffersTestMethod]
+        public void TestNestedFlatBuffer_TestStruct() {
+          const string nestedMonsterName = "NestedMonsterName";
+          const short nestedMonsterHp = 600;
+          const short nestedMonsterMana = 1024;
+          // Create nested buffer as a Monster type
+          var fbb1 = new FlatBufferBuilder(16);
+          var str1 = fbb1.CreateString(nestedMonsterName);
+          Monster.StartMonster(fbb1);
+          Monster.AddName(fbb1, str1);
+          Monster.AddHp(fbb1, nestedMonsterHp);
+          Monster.AddMana(fbb1, nestedMonsterMana);
+          var monster1 = Monster.EndMonster(fbb1);
+          Monster.FinishMonsterBuffer(fbb1, monster1);
+          var fbb1Bytes = fbb1.SizedByteArray();
+          fbb1 = null;
+
+          // Create a Monster which has the first buffer as a nested buffer
+          var fbb2 = new FlatBufferBuilder(16);
+          var str2 = fbb2.CreateString("My Monster");
+          var nestedBuffer = Monster.CreateTestnestedflatbufferVector(fbb2, fbb1Bytes);
+          Monster.StartMonster(fbb2);
+          Monster.AddName(fbb2, str2);
+          Monster.AddHp(fbb2, 50);
+          Monster.AddMana(fbb2, 32);
+          Monster.AddTestnestedflatbuffer(fbb2, nestedBuffer);
+          var monster = Monster.EndMonster(fbb2);
+          Monster.FinishMonsterBuffer(fbb2, monster);
+
+          // Now test the data extracted from the nested buffer
+          var mons = MonsterStruct.GetRootAsMonster(fbb2.DataBuffer);
+          MonsterStruct nestedMonster;
+          Assert.IsTrue(mons.TryGetTestnestedflatbufferAsMonster(out nestedMonster));
+
+          Assert.AreEqual(nestedMonsterMana, nestedMonster.Mana);
+          Assert.AreEqual(nestedMonsterHp, nestedMonster.Hp);
+          Assert.AreEqual(nestedMonsterName, nestedMonster.Name);
+        }
+
+        [FlatBuffersTestMethod]
+        public void TestFlatBufferCreateVector_TestStruct() {
+          // Second, let's create a FlatBuffer from scratch in C#, and test it also.
+          // We use an initial size of 1 to exercise the reallocation algorithm,
+          // normally a size larger than the typical FlatBuffer you generate would be
+          // better for performance.
+          var fbb = new FlatBufferBuilder(1);
+
+          // We set up the same values as monsterdata.json:
+
+          var str = fbb.CreateString("MyMonster");
+          var test1 = fbb.CreateString("test1");
+          var test2 = fbb.CreateString("test2");
+
+
+          Monster.StartInventoryVector(fbb, 5);
+          for (int i = 4; i >= 0; i--) {
+            fbb.AddByte((byte)i);
+          }
+          var inv = fbb.EndVector();
+
+          var fred = fbb.CreateString("Fred");
+          Monster.StartMonster(fbb);
+          Monster.AddName(fbb, fred);
+          var mon2 = Monster.EndMonster(fbb);
+
+          Monster.StartTest4Vector(fbb, 2);
+          MyGame.Example.Test.CreateTest(fbb, (short)10, (sbyte)20);
+          MyGame.Example.Test.CreateTest(fbb, (short)30, (sbyte)40);
+          var test4 = fbb.EndVector();
+
+          Monster.StartTestarrayofstringVector(fbb, 2);
+          fbb.AddOffset(test2.Value);
+          fbb.AddOffset(test1.Value);
+          var testArrayOfString = fbb.EndVector();
+
+          var testArrayOfBytes = Monster.CreateTestarrayofbytesVector(fbb, new byte[] { 0x1, 0x2, 0x3 });
+          var testArrayOfLongs = Monster.CreateTestarrayoflongsVector(fbb, new long[] { 1, 2, 3 });
+          var testArrayOfBools1 = Monster.CreateTestarrayofbools1Vector(fbb, new[] { true, false, false });
+          var testArrayOfInts = Monster.CreateTestarrayofintsVector(fbb, new[] { 1, 2, 3 });
+          var testArrayOfShorts = Monster.CreateTestarrayofshortsVector(fbb, new short[] { 1, 2, 3 });
+          var testArrayOfDoubles = Monster.CreateTestarrayofdoublesVector(fbb, new[] { 1.0, 2.0, 3.0 });
+          var testArrayOfFloats = Monster.CreateTestarrayoffloatsVector(fbb, new[] { 1.0F, 2.0F, 3.0F });
+
+          Monster.StartMonster(fbb);
+          Monster.AddPos(fbb, Vec3.CreateVec3(fbb, 1.0f, 2.0f, 3.0f, 3.0,
+                                                   Color.Green, (short)5, (sbyte)6));
+          Monster.AddHp(fbb, (short)80);
+          Monster.AddName(fbb, str);
+          Monster.AddInventory(fbb, inv);
+          Monster.AddTestType(fbb, Any.Monster);
+          Monster.AddTest(fbb, mon2.Value);
+          Monster.AddTest4(fbb, test4);
+          Monster.AddTestarrayofstring(fbb, testArrayOfString);
+          Monster.AddTestbool(fbb, false);
+
+          Monster.AddTestarrayofbytes(fbb, testArrayOfBytes);
+          Monster.AddTestarrayofbools1(fbb, testArrayOfBools1);
+          Monster.AddTestarrayofshorts(fbb, testArrayOfShorts);
+          Monster.AddTestarrayofints(fbb, testArrayOfInts);
+          Monster.AddTestarrayoffloats(fbb, testArrayOfFloats);
+          Monster.AddTestarrayoflongs(fbb, testArrayOfLongs);
+          Monster.AddTestarrayofdoubles(fbb, testArrayOfDoubles);
+
+          var mon = Monster.EndMonster(fbb);
+
+          Monster.FinishMonsterBuffer(fbb, mon);
+
+          var monster = MonsterStruct.GetRootAsMonster(fbb.DataBuffer);
+          ByteVector testarrayofbytes;
+          Assert.IsTrue(monster.TryGetTestarrayofbytes(out testarrayofbytes));
+          LongVector testarrayoflongs;
+          Assert.IsTrue(monster.TryGetTestarrayoflongs(out testarrayoflongs));
+          BoolVector testarrayofbools1;
+          Assert.IsTrue(monster.TryGetTestarrayofbools1(out testarrayofbools1));
+          IntVector testarrayofints;
+          Assert.IsTrue(monster.TryGetTestarrayofints(out testarrayofints));
+          ShortVector testarrayofshorts;
+          Assert.IsTrue(monster.TryGetTestarrayofshorts(out testarrayofshorts));
+          DoubleVector testarrayofdoubles;
+          Assert.IsTrue(monster.TryGetTestarrayofdoubles(out testarrayofdoubles));
+          FloatVector testarrayoffloats;
+          Assert.IsTrue(monster.TryGetTestarrayoffloats(out testarrayoffloats));
+          StringVector testarrayofstring;
+          Assert.IsTrue(monster.TryGetTestarrayofstring(out testarrayofstring));
+
+          Assert.AreEqual(testarrayofbytes.Length, 3);
+          Assert.AreEqual(testarrayoflongs.Length, 3);
+          Assert.AreEqual(testarrayofbools1.Length, 3);
+          Assert.AreEqual(testarrayofints.Length, 3);
+          Assert.AreEqual(testarrayofshorts.Length, 3);
+          Assert.AreEqual(testarrayofdoubles.Length, 3);
+          Assert.AreEqual(testarrayoffloats.Length, 3);
+
+          Assert.AreEqual(testarrayofstring.Length, 2);
+
+          for (int i = 0; i < 3; i++) {
+            Assert.AreEqual(testarrayofbytes[i], i + 1);
+            Assert.AreEqual(testarrayofshorts[i], i + 1);
+            Assert.AreEqual(testarrayofints[i], i + 1);
+            Assert.AreEqual(testarrayoflongs[i], i + 1);
+            Assert.AreEqual(testarrayofbools1[i], i == 0);
+            Assert.AreEqual(testarrayoffloats[i], i + 1);
+            Assert.AreEqual(testarrayofdoubles[i], i + 1);
+          }
+
+          Assert.IsTrue(testarrayofstring.SequenceEqual(new[]{"test1", "test2"}));
+
+          byte[] testarrayofbytesArray = testarrayofbytes.ToArray();
+          long[] testarrayoflongsArray = testarrayoflongs.ToArray();
+          bool[] testarrayofbools1Array = testarrayofbools1.ToArray();
+          int[] testarrayofintsArray = testarrayofints.ToArray();
+          short[] testarrayofshortsArray = testarrayofshorts.ToArray();
+          double[] testarrayofdoublesArray = testarrayofdoubles.ToArray();
+          float[] testarrayoffloatsArray = testarrayoffloats.ToArray();
+
+          Assert.AreEqual(testarrayofbytesArray.Length, testarrayofbytes.Length);
+          Assert.AreEqual(testarrayoflongsArray.Length, testarrayoflongs.Length);
+          Assert.AreEqual(testarrayofbools1Array.Length, testarrayofbools1.Length);
+          Assert.AreEqual(testarrayofintsArray.Length, testarrayofints.Length);
+          Assert.AreEqual(testarrayofshortsArray.Length, testarrayofshorts.Length);
+          Assert.AreEqual(testarrayofdoublesArray.Length, testarrayofdoubles.Length);
+          Assert.AreEqual(testarrayoffloatsArray.Length, testarrayoffloats.Length);
+
+          for (int i = 0; i < testarrayofbytes.Length; i++) {
+            Assert.AreEqual(testarrayofbytesArray[i], testarrayofbytes[i]);
+            Assert.AreEqual(testarrayoflongsArray[i], testarrayoflongs[i]);
+            Assert.AreEqual(testarrayofbools1Array[i], testarrayofbools1[i]);
+            Assert.AreEqual(testarrayofintsArray[i], testarrayofints[i]);
+            Assert.AreEqual(testarrayofshortsArray[i], testarrayofshorts[i]);
+            Assert.AreEqual(testarrayofdoublesArray[i], testarrayofdoubles[i]);
+            Assert.AreEqual(testarrayoffloatsArray[i], testarrayoffloats[i]);
+          }
+
+          System.Array.Reverse(testarrayofbytesArray);
+          System.Array.Reverse(testarrayoflongsArray);
+          System.Array.Reverse(testarrayofintsArray);
+          System.Array.Reverse(testarrayofshortsArray);
+          System.Array.Reverse(testarrayofdoublesArray);
+          System.Array.Reverse(testarrayoffloatsArray);
+
+          // invert
+          for (int i = 0; i < testarrayofbytes.Length; i++) {
+            testarrayofbools1Array[i] = !testarrayofbools1Array[i];
+          }
+
+          testarrayofbytes.CopyFrom(testarrayofbytesArray, 0);
+          testarrayoflongs.CopyFrom(testarrayoflongsArray, 0);
+          testarrayofbools1.CopyFrom(testarrayofbools1Array, 0);
+          testarrayofints.CopyFrom(testarrayofintsArray, 0);
+          testarrayofshorts.CopyFrom(testarrayofshortsArray, 0);
+          testarrayofdoubles.CopyFrom(testarrayofdoublesArray, 0);
+          testarrayoffloats.CopyFrom(testarrayoffloatsArray, 0);
+
+          for (int i = 0; i < 3; i++) {
+            Assert.AreEqual(testarrayofbytes[i], 3 - i);
+            Assert.AreEqual(testarrayofshorts[i], 3 - i);
+            Assert.AreEqual(testarrayofints[i], 3 - i);
+            Assert.AreEqual(testarrayoflongs[i], 3 - i);
+            Assert.AreEqual(testarrayofbools1[i], i != 0);
+            Assert.AreEqual(testarrayoffloats[i], 3 - i);
+            Assert.AreEqual(testarrayofdoubles[i], 3 - i);
+          }
+
+          testarrayofbytes.CopyFrom(testarrayofbytesArray, 2, 0, 1);
+          testarrayoflongs.CopyFrom(testarrayoflongsArray, 2, 0, 1);
+          testarrayofbools1.CopyFrom(testarrayofbools1Array, 2, 0, 1);
+          testarrayofints.CopyFrom(testarrayofintsArray, 2, 0, 1);
+          testarrayofshorts.CopyFrom(testarrayofshortsArray, 2, 0, 1);
+          testarrayofdoubles.CopyFrom(testarrayofdoublesArray, 2, 0, 1);
+          testarrayoffloats.CopyFrom(testarrayoffloatsArray, 2, 0, 1);
+
+          Assert.AreEqual(testarrayofbytes[0], 1);
+          Assert.AreEqual(testarrayofshorts[0], 1);
+          Assert.AreEqual(testarrayofints[0], 1);
+          Assert.AreEqual(testarrayoflongs[0], 1);
+          Assert.AreEqual(testarrayofbools1[0], true);
+          Assert.AreEqual(testarrayoffloats[0], 1);
+          Assert.AreEqual(testarrayofdoubles[0], 1);
+
+          Assert.IsTrue(testarrayofbytes.ToArray().SequenceEqual(testarrayofbytes.ToList()));
+          Assert.IsTrue(testarrayofshorts.ToArray().SequenceEqual(testarrayofshorts.ToList()));
+          Assert.IsTrue(testarrayofints.ToArray().SequenceEqual(testarrayofints.ToList()));
+          Assert.IsTrue(testarrayoflongs.ToArray().SequenceEqual(testarrayoflongs.ToList()));
+          Assert.IsTrue(testarrayofbools1.ToArray().SequenceEqual(testarrayofbools1.ToList()));
+          Assert.IsTrue(testarrayoffloats.ToArray().SequenceEqual(testarrayoffloats.ToList()));
+          Assert.IsTrue(testarrayofdoubles.ToArray().SequenceEqual(testarrayofdoubles.ToList()));
+          Assert.IsTrue(testarrayofstring.ToArray().SequenceEqual(testarrayofstring.ToList()));
+        }
+
+        [FlatBuffersTestMethod]
+        public void TestByteBufferSegment_TestStruct() {
+          const string nestedMonsterName = "NestedMonsterName";
+          const short nestedMonsterHp = 600;
+          const short nestedMonsterMana = 1024;
+          // Create nested buffer as a Monster type
+          var fbb1 = new FlatBufferBuilder(16);
+          var str1 = fbb1.CreateString(nestedMonsterName);
+          Monster.StartMonster(fbb1);
+          Monster.AddName(fbb1, str1);
+          Monster.AddHp(fbb1, nestedMonsterHp);
+          Monster.AddMana(fbb1, nestedMonsterMana);
+          var monster1 = Monster.EndMonster(fbb1);
+          Monster.FinishMonsterBuffer(fbb1, monster1);
+
+          // Create a Monster which has the first buffer as a nested buffer
+          var fbb2 = new FlatBufferBuilder(16);
+          var str2 = fbb2.CreateString("My Monster");
+          var nestedBuffer = fbb2.CreateByteVector(fbb1.DataBuffer);
+          Monster.StartMonster(fbb2);
+          Monster.AddName(fbb2, str2);
+          Monster.AddHp(fbb2, 50);
+          Monster.AddMana(fbb2, 32);
+          Monster.AddTestnestedflatbuffer(fbb2, nestedBuffer);
+          var monster = Monster.EndMonster(fbb2);
+          Monster.FinishMonsterBuffer(fbb2, monster);
+
+          // Now test the data extracted from the nested buffer
+          var mons = MonsterStruct.GetRootAsMonster(fbb2.DataBuffer);
+          ByteVector testnestedflatbuffer;
+          Assert.IsTrue(mons.TryGetTestnestedflatbuffer(out testnestedflatbuffer));
+          var nestedMonsterSegment = testnestedflatbuffer.GetAsByteBufferSegment();
+          var nestedMonster = MonsterStruct.GetRootAsMonster(nestedMonsterSegment);
 
           Assert.AreEqual(nestedMonsterMana, nestedMonster.Mana);
           Assert.AreEqual(nestedMonsterHp, nestedMonster.Hp);
