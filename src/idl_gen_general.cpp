@@ -980,6 +980,13 @@ static void GenStruct(const LanguageParameters &lang, const Parser &parser,
         }
       }
     }
+
+    // generate is specified properties for Scalar types within tables
+    if (IsScalar(field.value.type.base_type) && !struct_def.fixed){
+      code += "  public bool Is" + MakeCamel(field.name, true) + "Specified { get { return ";
+      code += "__offset(" + NumToString(field.value.offset) + ")" + " != 0";
+      code += "; } }\n";
+    }
   }
   code += "\n";
   if (struct_def.fixed) {
