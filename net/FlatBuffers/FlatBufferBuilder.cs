@@ -49,13 +49,17 @@ namespace FlatBuffers
         // Indicates whether builder can dispose and grow byte buffer
         private bool _ownsByteBuffer = false;
 
+        public FlatBufferBuilder() {
+            ForceDefaults=true;
+        }
+
         /// <summary>
         /// Create a FlatBufferBuilder with a given initial size.
         /// </summary>
         /// <param name="initialSize">
         /// The initial size to use for the internal buffer.
         /// </param>
-        public FlatBufferBuilder(int initialSize)
+        public FlatBufferBuilder(int initialSize):this()
         {
             if (initialSize <= 0)
                 throw new ArgumentOutOfRangeException("initialSize",
@@ -74,7 +78,7 @@ namespace FlatBuffers
         /// <param name="ownsByteBuffer">
         /// Specifies whether or not FlatBufferBuilder can dispose of the ByteBuffer
         /// </param>
-        public FlatBufferBuilder(ByteBuffer byteBuffer, bool ownsByteBuffer = false)
+        public FlatBufferBuilder(ByteBuffer byteBuffer, bool ownsByteBuffer = false):this()
         {
             if (byteBuffer == null)
               throw new ArgumentNullException("byteBuffer");
