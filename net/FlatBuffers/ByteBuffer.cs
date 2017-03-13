@@ -783,6 +783,7 @@ namespace FlatBuffers
           if (buffer == null) {
             buffer = new byte[length];
             CopyTo(offset, buffer, 0, length);
+            offset = 0;
           }
 #endif
           arraySegment = new ArraySegment<byte>(buffer, offset, length);
