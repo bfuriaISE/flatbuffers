@@ -63,6 +63,15 @@ function(build_flatbuffers flatbuffers_schemas
     set(FLATC_TARGET flatc)
     set(FLATC flatc)
   endif()
+  set(FLATC_SCHEMA_ARGS --gen-mutable)
+  if(FLATBUFFERS_FLATC_SCHEMA_EXTRA_ARGS)
+    set(FLATC_SCHEMA_ARGS
+      ${FLATBUFFERS_FLATC_SCHEMA_EXTRA_ARGS}
+      ${FLATC_SCHEMA_ARGS}
+      )
+  endif()
+
+  set(working_dir "${CMAKE_CURRENT_SOURCE_DIR}")
 
   set(schema_glob "*.fbs")
   # Generate the include files parameters.
@@ -86,11 +95,12 @@ function(build_flatbuffers flatbuffers_schemas
       set(generated_include ${generated_includes_dir}/${filename}_generated.h)
       add_custom_command(
         OUTPUT ${generated_include}
-        COMMAND ${FLATC} --gen-mutable
+        COMMAND ${FLATC} ${FLATC_SCHEMA_ARGS}
         -o ${generated_includes_dir}
         ${include_params}
         -c ${schema}
-        DEPENDS ${FLATC_TARGET} ${schema} ${additional_dependencies})
+        DEPENDS ${FLATC_TARGET} ${schema} ${additional_dependencies}
+        WORKING_DIRECTORY "${working_dir}")
       list(APPEND all_generated_files ${generated_include})
     endif()
 
@@ -102,7 +112,8 @@ function(build_flatbuffers flatbuffers_schemas
         -o ${binary_schemas_dir}
         ${include_params}
         ${schema}
-        DEPENDS ${FLATC_TARGET} ${schema} ${additional_dependencies})
+        DEPENDS ${FLATC_TARGET} ${schema} ${additional_dependencies}
+        WORKING_DIRECTORY "${working_dir}")
       list(APPEND all_generated_files ${binary_schema})
     endif()
 

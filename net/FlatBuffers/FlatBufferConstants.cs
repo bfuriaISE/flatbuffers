@@ -1,4 +1,4 @@
-﻿/*
+/*
  * Copyright 2014 Google Inc. All rights reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -24,5 +24,6 @@ namespace FlatBuffers
     public static class FlatBufferConstants
     {
         public const int FileIdentifierLength = 4;
+        public const int SizePrefixLength = 4;
     }
 }
