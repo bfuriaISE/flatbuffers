@@ -128,7 +128,7 @@ const LanguageParameters &GetLangParams(IDLOptions::Language lang) {
         "__p.",
         "Table.",
         "?",
-        "using global::System;\nusing global::FlatBuffers;\n\n",
+        "using System;\nusing System.Collections.Generic;\nusing FlatBuffers;\n\n",
         "",
         "",
         {
@@ -1392,6 +1392,33 @@ class GeneralGenerator : public BaseGenerator {
               code += ".Value";
             code += "); return ";
             code += "builder." + FunctionStart('E') + "ndVector(); }\n";
+
+            // For C#, include a list copy method signature.
+            if (lang_.language == IDLOptions::kCSharp) {
+              code += "  public static " + GenVectorOffsetType() + " ";
+              code += FunctionStart('C') + "reate";
+              code += MakeCamel(field.name);
+              code += "Vector(FlatBufferBuilder builder, ";
+              code += "IList<" + GenTypeBasic(vector_type) + "> data) ";
+              code += "{ builder." + FunctionStart('S') + "tartVector(";
+              code += NumToString(elem_size);
+              code += ", data." + FunctionStart('C') + "ount, ";
+              code += NumToString(alignment);
+              code += "); for (int i = data.";
+              code += FunctionStart('C') + "ount - 1; i >= 0; i--) builder.";
+              code += FunctionStart('A') + "dd";
+              code += GenMethod(vector_type);
+              code += "(";
+              code += SourceCastBasic(vector_type, false);
+              code += "data[i]";
+              if (lang_.language == IDLOptions::kCSharp &&
+                  (vector_type.base_type == BASE_TYPE_STRUCT ||
+                   vector_type.base_type == BASE_TYPE_STRING))
+                code += ".Value";
+              code += "); return ";
+              code += "builder." + FunctionStart('E') + "ndVector(); }\n";
+            }
+
             // For C#, include a block copy method signature.
             if (lang_.language == IDLOptions::kCSharp) {
               code += "  public static " + GenVectorOffsetType() + " ";
