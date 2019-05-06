@@ -1071,6 +1071,16 @@ class GeneralGenerator : public BaseGenerator {
       }
       code += member_suffix;
       code += "}\n";
+
+      // generate is specified properties for all fields
+      if (!struct_def.fixed) {
+        code += "  public " + lang_.bool_type + "Is" +
+                MakeCamel(field.name, true) + "Specified { get { return ";
+        code += lang_.accessor_prefix + "__offset(" +
+                NumToString(field.value.offset) + ")" + " != 0";
+        code += "; } }\n";
+      }
+
       if (field.value.type.base_type == BASE_TYPE_VECTOR) {
         code +=
             "  public int " + MakeCamel(field.name, lang_.first_camel_upper);
