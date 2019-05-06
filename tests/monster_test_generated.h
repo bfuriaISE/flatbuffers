@@ -209,10 +209,11 @@ struct AnyUnion {
 #ifndef FLATBUFFERS_CPP98_STL
   template <typename T>
   void Set(T&& val) {
+    using RT = typename std::remove_reference<T>::type;
     Reset();
-    type = AnyTraits<typename T::TableType>::enum_value;
+    type = AnyTraits<typename RT::TableType>::enum_value;
     if (type != Any_NONE) {
-      value = new T(std::forward<T>(val));
+      value = new RT(std::forward<T>(val));
     }
   }
 #endif  // FLATBUFFERS_CPP98_STL
@@ -350,10 +351,11 @@ struct AnyUniqueAliasesUnion {
 #ifndef FLATBUFFERS_CPP98_STL
   template <typename T>
   void Set(T&& val) {
+    using RT = typename std::remove_reference<T>::type;
     Reset();
-    type = AnyUniqueAliasesTraits<typename T::TableType>::enum_value;
+    type = AnyUniqueAliasesTraits<typename RT::TableType>::enum_value;
     if (type != AnyUniqueAliases_NONE) {
-      value = new T(std::forward<T>(val));
+      value = new RT(std::forward<T>(val));
     }
   }
 #endif  // FLATBUFFERS_CPP98_STL
@@ -540,6 +542,9 @@ FLATBUFFERS_MANUALLY_ALIGNED_STRUCT(2) Test FLATBUFFERS_FINAL_CLASS {
   int8_t padding0__;
 
  public:
+  static const flatbuffers::TypeTable *MiniReflectTypeTable() {
+    return TestTypeTable();
+  }
   Test() {
     memset(static_cast<void *>(this), 0, sizeof(Test));
   }
@@ -588,6 +593,9 @@ FLATBUFFERS_MANUALLY_ALIGNED_STRUCT(8) Vec3 FLATBUFFERS_FINAL_CLASS {
   int16_t padding2__;
 
  public:
+  static const flatbuffers::TypeTable *MiniReflectTypeTable() {
+    return Vec3TypeTable();
+  }
   Vec3() {
     memset(static_cast<void *>(this), 0, sizeof(Vec3));
   }
@@ -665,6 +673,9 @@ FLATBUFFERS_MANUALLY_ALIGNED_STRUCT(4) Ability FLATBUFFERS_FINAL_CLASS {
   uint32_t distance_;
 
  public:
+  static const flatbuffers::TypeTable *MiniReflectTypeTable() {
+    return AbilityTypeTable();
+  }
   Ability() {
     memset(static_cast<void *>(this), 0, sizeof(Ability));
   }

@@ -121,10 +121,11 @@ struct EquipmentUnion {
 #ifndef FLATBUFFERS_CPP98_STL
   template <typename T>
   void Set(T&& val) {
+    using RT = typename std::remove_reference<T>::type;
     Reset();
-    type = EquipmentTraits<typename T::TableType>::enum_value;
+    type = EquipmentTraits<typename RT::TableType>::enum_value;
     if (type != Equipment_NONE) {
-      value = new T(std::forward<T>(val));
+      value = new RT(std::forward<T>(val));
     }
   }
 #endif  // FLATBUFFERS_CPP98_STL
@@ -173,6 +174,9 @@ FLATBUFFERS_MANUALLY_ALIGNED_STRUCT(4) Vec3 FLATBUFFERS_FINAL_CLASS {
   float z_;
 
  public:
+  static const flatbuffers::TypeTable *MiniReflectTypeTable() {
+    return Vec3TypeTable();
+  }
   Vec3() {
     memset(static_cast<void *>(this), 0, sizeof(Vec3));
   }
