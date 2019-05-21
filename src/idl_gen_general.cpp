@@ -448,7 +448,7 @@ class GeneralGenerator : public BaseGenerator {
     for (auto it = vec.begin(); it != vec.end(); ++it) {
       auto enum_val = **it;
       if (enum_val.value == default_value) {
-        result = WrapInNameSpace(*enum_def) + "." + enum_val.name;
+        result = "default(" + WrapInNameSpace(*enum_def) + ")";
         break;
       }
     }
