@@ -95,7 +95,7 @@ namespace FlatBuffers
         /// In order to save space, fields that are set to their default value
         /// don't get serialized into the buffer.
         /// </summary>
-        public bool ForceDefaults { get; set; }
+        public bool ForceDefaults { get; set; } = true;
 
         /// @cond FLATBUFFERS_INTERNAL
 
