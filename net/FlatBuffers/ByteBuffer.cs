@@ -121,7 +121,7 @@ namespace FlatBuffers
     /// <summary>
     /// Class to mimic Java's ByteBuffer which is used heavily in Flatbuffers.
     /// </summary>
-    public class ByteBuffer
+    public class ByteBuffer : IDisposable
     {
         private ByteBufferAllocator _buffer;
         private int _pos;  // Must track start of the buffer.
@@ -140,6 +140,11 @@ namespace FlatBuffers
         {
             _buffer = new ByteArrayAllocator(buffer);
             _pos = pos;
+        }
+
+        public void Dispose()
+        {
+          //Temporary Dispose while migrating to new Flatbuffer Version
         }
 
         public int Position

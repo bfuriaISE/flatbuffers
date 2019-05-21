@@ -28,7 +28,7 @@ namespace FlatBuffers
     /// Responsible for building up and accessing a FlatBuffer formatted byte
     /// array (via ByteBuffer).
     /// </summary>
-    public class FlatBufferBuilder
+    public class FlatBufferBuilder : IDisposable
     {
         private int _space;
         private ByteBuffer _bb;
@@ -71,6 +71,10 @@ namespace FlatBuffers
             _bb = buffer;
             _space = buffer.Length;
             buffer.Reset();
+        }
+        public void Dispose()
+        {
+          //Temporary Dispose while migrating to new Flatbuffer Version
         }
 
         /// <summary>
