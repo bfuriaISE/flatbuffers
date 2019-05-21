@@ -229,6 +229,11 @@ namespace FlatBuffers
         {
             return SizeOf<T>() * x.Length;
         }
+#else
+        public static int ArraySize<T>(ArraySegment<T> x)
+        {
+          return SizeOf<T>() * x.Count;
+        }
 #endif
 
         // Get a portion of the buffer casted into an array of type T, given
@@ -886,6 +891,62 @@ namespace FlatBuffers
             }
             return offset;
         }
+#else
+
+      /// <summary>
+      /// Copies an array segment of type T into this buffer, ending at the given
+      /// offset into this buffer. The starting offset is calculated based on the length
+      /// of the array segment and is the value returned.
+      /// </summary>
+      /// <typeparam name="T">The type of the input data (must be a struct)</typeparam>
+      /// <param name="offset">The offset into this buffer where the copy will end</param>
+      /// <param name="x">The array to copy data from</param>
+      /// <returns>The 'start' location of this buffer now, after the copy completed</returns>
+      public int Put<T>(int offset, ArraySegment<T> x)
+        where T : struct
+      {
+        if (x == null)
+        {
+          throw new ArgumentNullException("Cannot put a null array");
+        }
+
+        if (x.Array == null)
+        {
+          throw new ArgumentNullException("Cannot put a null array");
+        }
+
+        if (x.Count == 0)
+        {
+          throw new ArgumentException("Cannot put an empty array");
+        }
+
+        if (!IsSupportedType<T>())
+        {
+          throw new ArgumentException("Cannot put an array of type "
+                                      + typeof(T) + " into this buffer");
+        }
+
+        if (BitConverter.IsLittleEndian)
+        {
+          int numBytes = ByteBuffer.ArraySize(x);
+          offset -= numBytes;
+          AssertOffsetAndLength(offset, numBytes);
+          // if we are LE, just do a block copy
+          Buffer.BlockCopy(x.Array, x.Offset * SizeOf<T>(), _buffer.Buffer, offset, numBytes);
+        }
+        else
+        {
+          throw new NotImplementedException("Big Endian Support not implemented yet " +
+                                            "for putting typed arrays");
+          // if we are BE, we have to swap each element by itself
+          //for(int i = x.Length - 1; i >= 0; i--)
+          //{
+          //  todo: low priority, but need to genericize the Put<T>() functions
+          //}
+        }
+        return offset;
+      }
+
 #endif
-    }
+  }
 }

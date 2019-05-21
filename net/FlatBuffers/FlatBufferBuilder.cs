@@ -214,6 +214,18 @@ namespace FlatBuffers
         {
             _space = _bb.Put(_space, x);
         }
+#else
+        /// <summary>
+        /// Puts a ArraySegment of type T into this builder at the 
+        /// current offset
+        /// </summary>
+        /// <typeparam name="T">The type of the input data </typeparam>
+        /// <param name="x">The span to copy data from</param>
+        public void Put<T>(ArraySegment<T> x)
+          where T : struct
+        {
+          _space = _bb.Put(_space, x);
+        }
 #endif
 
         public void PutDouble(double x)
